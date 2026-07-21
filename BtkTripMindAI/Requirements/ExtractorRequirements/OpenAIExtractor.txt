@@ -1,0 +1,258 @@
+﻿using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using TripMindAI.Agent.Models;
+
+namespace TripMindAI.Agent.Extractors
+{
+    public class OpenAICityExtractor : ICityExtractor
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<OpenAICityExtractor> _logger;
+
+        public OpenAICityExtractor(
+            HttpClient httpClient,
+            IConfiguration configuration,
+            ILogger<OpenAICityExtractor> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        public async Task<CityExtractionResult> ExtractAsync(
+            string message,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return EmptyResult();
+            }
+
+            string? apiKey = _configuration["OpenAI:ApiKey"];
+            string model = _configuration["OpenAI:Model"] ?? "gpt-5-mini";
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException(
+                    "OpenAI API anahtarı bulunamadı.");
+            }
+
+            var requestBody = new
+            {
+                model,
+                instructions =
+                    """
+                    Sen bir seyahat uygulamasında şehir ve ülke bilgisi çıkaran
+                    veri ayrıştırma aracısın.
+
+                    Kullanıcının mesajındaki seyahatle ilgili hedef şehri bul.
+
+                    Kurallar:
+                    - Yalnızca açıkça belirtilen şehri döndür.
+                    - Şehir belirtilmemişse tahmin yapma.
+                    - Ülke açıkça belirtilmişse veya şehirden güvenilir şekilde
+                      anlaşılabiliyorsa ülkeyi İngilizce adıyla döndür.
+                    - İlçe, mahalle, havalimanı veya turistik bölge belirtilmişse
+                      bağlı olduğu ana şehri döndür.
+                    - Birden fazla şehir varsa kullanıcının asıl hedefini döndür.
+                    - Sonuç yalnızca geçerli JSON olmalıdır.
+
+                    JSON biçimi:
+                    {
+                      "found": true,
+                      "city": "Nice",
+                      "country": "France"
+                    }
+
+                    Şehir yoksa:
+                    {
+                      "found": false,
+                      "city": null,
+                      "country": null
+                    }
+                    """,
+                input = message
+            };
+
+            string json = JsonSerializer.Serialize(requestBody);
+
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                "https://api.openai.com/v1/responses");
+
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue("Bearer", apiKey);
+
+            request.Content = new StringContent(
+                json,
+                Encoding.UTF8,
+                "application/json");
+
+            using HttpResponseMessage response =
+                await _httpClient.SendAsync(
+                    request,
+                    cancellationToken);
+
+            string responseContent =
+                await response.Content.ReadAsStringAsync(
+                    cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "OpenAI şehir çıkarma isteği başarısız. " +
+                    "StatusCode: {StatusCode}, Response: {Response}",
+                    response.StatusCode,
+                    responseContent);
+
+                throw new HttpRequestException(
+                    $"OpenAI isteği başarısız oldu: {response.StatusCode}");
+            }
+
+            string? outputText = GetOutputText(responseContent);
+
+            if (string.IsNullOrWhiteSpace(outputText))
+            {
+                return EmptyResult();
+            }
+
+            try
+            {
+                CityExtractionResult? result =
+                    JsonSerializer.Deserialize<CityExtractionResult>(
+                        outputText,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                return result ?? EmptyResult();
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Şehir çıkarma JSON cevabı ayrıştırılamadı: {OutputText}",
+                    outputText);
+
+                return EmptyResult();
+            }
+        }
+
+        private static string? GetOutputText(string responseContent)
+        {
+            using JsonDocument document =
+                JsonDocument.Parse(responseContent);
+
+            JsonElement root = document.RootElement;
+
+            if (root.TryGetProperty(
+                    "output_text",
+                    out JsonElement outputTextElement))
+            {
+                return outputTextElement.GetString();
+            }
+
+            if (!root.TryGetProperty(
+                    "output",
+                    out JsonElement outputElement) ||
+                outputElement.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            foreach (JsonElement outputItem in outputElement.EnumerateArray())
+            {
+                if (!outputItem.TryGetProperty(
+                        "content",
+                        out JsonElement contentElement) ||
+                    contentElement.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (JsonElement contentItem
+                         in contentElement.EnumerateArray())
+                {
+                    if (contentItem.TryGetProperty(
+                            "text",
+                            out JsonElement textElement))
+                    {
+                        return textElement.GetString();
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static CityExtractionResult EmptyResult()
+        {
+            return new CityExtractionResult
+            {
+                Found = false,
+                City = null,
+                Country = null
+            };
+        }
+    }
+}
+
+
+------------------------------------------------------------------------------------------
+
+private static string CreateResponse(
+    TravelIntent intent,
+    string? city)
+{
+    string cityText = string.IsNullOrWhiteSpace(city)
+        ? "hangi şehir"
+        : city;
+
+    return intent switch
+    {
+        TravelIntent.Weather when city is not null =>
+            $"{city} için hava durumu bilgilerini kontrol etmeye hazırım.",
+
+        TravelIntent.Weather =>
+            "Hava durumunu kontrol edebilirim. Hangi şehir için bilgi almak istiyorsunuz?",
+
+        TravelIntent.Hotel when city is not null =>
+            $"{city} için uygun otelleri araştırabilirim. Tarih aralığını ve kişi sayısını paylaşır mısınız?",
+
+        TravelIntent.Hotel =>
+            "Size uygun otelleri listeleyebilirim. Şehir, tarih aralığı ve kişi sayısını paylaşır mısınız?",
+
+        TravelIntent.Restaurant when city is not null =>
+            $"{city} için restoran önerileri hazırlayabilirim. Tercih ettiğiniz mutfak türü var mı?",
+
+        TravelIntent.Restaurant =>
+            "Restoran önerileri hazırlayabilirim. Hangi şehirde restoran arıyorsunuz?",
+
+        TravelIntent.Route when city is not null =>
+            $"{city} için seyahat rotası oluşturabilirim. Kaç günlük bir plan istiyorsunuz?",
+
+        TravelIntent.Route =>
+            "Seyahat rotası oluşturabilirim. Şehir ve gün sayısını paylaşır mısınız?",
+
+        TravelIntent.Attraction when city is not null =>
+            $"{city} için görülmesi gereken yerleri listeleyebilirim.",
+
+        TravelIntent.Attraction =>
+            "Gezilecek yerleri listeleyebilirim. Hangi şehir için öneri almak istiyorsunuz?",
+
+        _ when city is not null =>
+            $"{cityText} ile ilgili seyahat talebinizi aldım.",
+
+        _ =>
+            "Talebinizi aldım. Gideceğiniz şehri ve seyahat tercihlerinizi paylaşabilirsiniz."
+    };
+}
+
+
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------

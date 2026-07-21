@@ -1,0 +1,495 @@
+﻿ public TravelIntent Detect(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return TravelIntent.Unknown;
+            }
+
+            string normalizedMessage = message
+                .Trim()
+                .ToLower(new CultureInfo("tr-TR"));
+
+            if (ContainsAny(
+                    normalizedMessage,
+                    "hava",
+                    "hava durumu",
+                    "sıcaklık",
+                    "yağmur",
+                    "kar yağışı",
+                    "güneşli",
+                    "derece"))
+            {
+                return TravelIntent.Weather;
+            }
+
+            if (ContainsAny(
+                    normalizedMessage,
+                    "otel",
+                    "konaklama",
+                    "nerede kal",
+                    "pansiyon",
+                    "apart otel",
+                    "resort"))
+            {
+                return TravelIntent.Hotel;
+            }
+
+            if (ContainsAny(
+                    normalizedMessage,
+                    "restoran",
+                    "yemek",
+                    "kahvaltı",
+                    "akşam yemeği",
+                    "mekan",
+                    "kafe",
+                    "lokanta"))
+            {
+                return TravelIntent.Restaurant;
+            }
+
+            if (ContainsAny(
+                    normalizedMessage,
+                    "rota",
+                    "gezi planı",
+                    "seyahat planı",
+                    "günlük plan",
+                    "program oluştur",
+                    "kaç günlük plan"))
+            {
+                return TravelIntent.Route;
+            }
+
+            if (ContainsAny(
+                    normalizedMessage,
+                    "döviz",
+                    "kur",
+                    "euro",
+                    "dolar",
+                    "sterlin",
+                    "kaç tl",
+                    "para birimi"))
+            {
+                return TravelIntent.Currency;
+            }
+
+            if (ContainsAny(
+                    normalizedMessage,
+                    "uçuş",
+                    "uçak",
+                    "uçak bileti",
+                    "bilet bul",
+                    "havayolu"))
+            {
+                return TravelIntent.Flight;
+            }
+
+            if (ContainsAny(
+                    normalizedMessage,
+                    "ulaşım",
+                    "transfer",
+                    "havalimanından",
+                    "havaalanından",
+                    "nasıl giderim",
+                    "metro",
+                    "otobüs",
+                    "tren"))
+            {
+                return TravelIntent.Transportation;
+            }
+
+            if (ContainsAny(
+                    normalizedMessage,
+                    "gezilecek yer",
+                    "görülecek yer",
+                    "müze",
+                    "aktivite",
+                    "ne yapılır",
+                    "nereleri gezelim"))
+            {
+                return TravelIntent.Attraction;
+            }
+
+            if (ContainsAny(
+                    normalizedMessage,
+                    "şehir öner",
+                    "nereye git",
+                    "tatil yeri",
+                    "destinasyon öner",
+                    "hangi şehre",
+                    "hangi ülkeye"))
+            {
+                return TravelIntent.CityRecommendation;
+            }
+
+            return TravelIntent.Unknown;
+        }
+
+        private static bool ContainsAny(
+            string message,
+            params string[] keywords)
+        {
+            return keywords.Any(message.Contains);
+        }
+
+------------------------------------------------------------------------------------------
+
+public async Task<AgentResult> ProcessMessageAsync(string message)
+        {
+            await Task.Delay(600);
+
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return new AgentResult
+                {
+                    IsSuccess = false,
+                    Intent = TravelIntent.Unknown,
+                    Message = "Lütfen geçerli bir mesaj giriniz."
+                };
+            }
+
+            TravelIntent intent = _intentDetector.Detect(message);
+
+            string responseMessage = CreateResponse(intent);
+
+            return new AgentResult
+            {
+                IsSuccess = true,
+                Intent = intent,
+                Message = responseMessage,
+                ToolName = GetToolName(intent)
+            };
+        }
+
+        private static string CreateResponse(TravelIntent intent)
+        {
+            return intent switch
+            {
+                TravelIntent.Weather =>
+                    "Hava durumunu kontrol edebilirim. Hangi şehir ve tarih için bilgi almak istiyorsunuz?",
+
+                TravelIntent.Hotel =>
+                    "Size uygun otelleri listeleyebilirim. Şehir, tarih aralığı ve kişi sayısını paylaşır mısınız?",
+
+                TravelIntent.Restaurant =>
+                    "Restoran önerileri hazırlayabilirim. Hangi şehirde ve hangi mutfak türünde restoran arıyorsunuz?",
+
+                TravelIntent.Route =>
+                    "Sizin için bir seyahat rotası oluşturabilirim. Şehir, gün sayısı ve seyahat tercihlerinizi paylaşabilirsiniz.",
+
+                TravelIntent.Currency =>
+                    "Döviz hesaplaması yapabilirim. Tutarı ve çevirmek istediğiniz para birimlerini belirtir misiniz?",
+
+                TravelIntent.Flight =>
+                    "Uçuş seçeneklerini değerlendirebilirim. Kalkış ve varış şehirleriyle seyahat tarihinizi paylaşır mısınız?",
+
+                TravelIntent.Transportation =>
+                    "Şehir içi veya havalimanı ulaşımı konusunda yardımcı olabilirim. Başlangıç ve varış noktasını paylaşır mısınız?",
+
+                TravelIntent.Attraction =>
+                    "Gezilecek yerleri listeleyebilirim. Hangi şehir için öneri almak istiyorsunuz?",
+
+                TravelIntent.CityRecommendation =>
+                    "Size uygun bir şehir önerebilmem için seyahat tarihinizi, bütçenizi ve tatil tercihlerinizi paylaşır mısınız?",
+
+                _ =>
+                    "Talebinizi tam olarak anlayamadım. Hava durumu, otel, restoran, rota, uçuş veya şehir önerisi hakkında soru sorabilirsiniz."
+            };
+        }
+
+        private static string? GetToolName(TravelIntent intent)
+        {
+            return intent switch
+            {
+                TravelIntent.Weather => "WeatherTool",
+                TravelIntent.Hotel => "HotelTool",
+                TravelIntent.Restaurant => "RestaurantTool",
+                TravelIntent.Route => "RoutePlannerTool",
+                TravelIntent.Currency => "CurrencyTool",
+                TravelIntent.Flight => "FlightTool",
+                TravelIntent.Transportation => "TransportationTool",
+                TravelIntent.Attraction => "AttractionTool",
+                TravelIntent.CityRecommendation => "CityRecommendationTool",
+                _ => null
+            };
+        }
+
+
+------------------------------------------------------------------------------------------
+
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+
+namespace TripMindAI.Agent.Intents
+{
+    public class OpenAIIntentDetector : IIntentDetector
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<OpenAIIntentDetector> _logger;
+
+        public OpenAIIntentDetector(
+            HttpClient httpClient,
+            IConfiguration configuration,
+            ILogger<OpenAIIntentDetector> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        public async Task<TravelIntent> DetectAsync(
+            string message,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return TravelIntent.Unknown;
+            }
+
+            string? apiKey = _configuration["OpenAI:ApiKey"];
+            string model =
+                _configuration["OpenAI:Model"] ?? "gpt-5-mini";
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException(
+                    "OpenAI API anahtarı bulunamadı.");
+            }
+
+            var requestBody = new
+            {
+                model,
+                instructions =
+                    """
+                    Sen TripMindAI isimli bir seyahat asistanının
+                    intent sınıflandırma bileşenisin.
+
+                    Kullanıcının mesajını analiz et ve yalnızca aşağıdaki
+                    intent değerlerinden birini seç:
+
+                    - Unknown
+                    - CityRecommendation
+                    - Weather
+                    - Hotel
+                    - Restaurant
+                    - Route
+                    - Currency
+                    - Flight
+                    - Transportation
+                    - Attraction
+
+                    Intent açıklamaları:
+
+                    Weather:
+                    Hava durumu, sıcaklık, yağmur, kar, rüzgar veya iklim
+                    soruları.
+
+                    Hotel:
+                    Otel, konaklama, pansiyon, apart, resort veya kalacak
+                    yer soruları.
+
+                    Restaurant:
+                    Restoran, yemek, kahvaltı, kafe, lokanta veya mutfak
+                    önerileri.
+
+                    Route:
+                    Gezi planı, günlük program, seyahat rotası veya
+                    kaç günlük plan oluşturma talepleri.
+
+                    Currency:
+                    Döviz kuru, para çevirme, euro, dolar, sterlin veya
+                    para birimi hesaplama soruları.
+
+                    Flight:
+                    Uçuş, uçak bileti, havayolu veya sefer araştırma
+                    talepleri.
+
+                    Transportation:
+                    Havalimanı transferi, metro, tren, otobüs, taksi veya
+                    bir noktadan başka bir noktaya ulaşım soruları.
+
+                    Attraction:
+                    Gezilecek yerler, müzeler, aktiviteler veya görülmesi
+                    gereken noktalar.
+
+                    CityRecommendation:
+                    Kullanıcının hangi şehre veya ülkeye gitmesi gerektiği
+                    konusunda öneri istemesi.
+
+                    Unknown:
+                    Yukarıdaki kategorilerden hiçbirine uymayan mesajlar.
+
+                    Kurallar:
+                    - Yalnızca tek bir intent seç.
+                    - Açıklama yazma.
+                    - Markdown kullanma.
+                    - Kullanıcının mesajında birden fazla konu varsa ana
+                      isteği seç.
+                    - Sonucu yalnızca JSON olarak döndür.
+
+                    JSON biçimi:
+
+                    {
+                      "intent": "Weather"
+                    }
+                    """,
+                input = message
+            };
+
+            string requestJson =
+                JsonSerializer.Serialize(requestBody);
+
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                "https://api.openai.com/v1/responses");
+
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    apiKey);
+
+            request.Content = new StringContent(
+                requestJson,
+                Encoding.UTF8,
+                "application/json");
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await _httpClient.SendAsync(
+                        request,
+                        cancellationToken);
+
+                string responseContent =
+                    await response.Content.ReadAsStringAsync(
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError(
+                        "OpenAI intent isteği başarısız. " +
+                        "StatusCode: {StatusCode}, Response: {Response}",
+                        response.StatusCode,
+                        responseContent);
+
+                    return TravelIntent.Unknown;
+                }
+
+                string? outputText =
+                    GetOutputText(responseContent);
+
+                if (string.IsNullOrWhiteSpace(outputText))
+                {
+                    return TravelIntent.Unknown;
+                }
+
+                IntentExtractionResult? result =
+                    JsonSerializer.Deserialize<IntentExtractionResult>(
+                        outputText,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                if (result == null ||
+                    string.IsNullOrWhiteSpace(result.Intent))
+                {
+                    return TravelIntent.Unknown;
+                }
+
+                bool isParsed = Enum.TryParse(
+                    result.Intent,
+                    ignoreCase: true,
+                    out TravelIntent parsedIntent);
+
+                return isParsed
+                    ? parsedIntent
+                    : TravelIntent.Unknown;
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogError(
+                    "OpenAI intent tespit isteği zaman aşımına uğradı.");
+
+                return TravelIntent.Unknown;
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "OpenAI intent cevabı JSON formatına çevrilemedi.");
+
+                return TravelIntent.Unknown;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Intent tespit edilirken beklenmeyen bir hata oluştu.");
+
+                return TravelIntent.Unknown;
+            }
+        }
+
+        private static string? GetOutputText(
+            string responseContent)
+        {
+            using JsonDocument document =
+                JsonDocument.Parse(responseContent);
+
+            JsonElement root = document.RootElement;
+
+            if (root.TryGetProperty(
+                    "output_text",
+                    out JsonElement outputTextElement))
+            {
+                return outputTextElement.GetString();
+            }
+
+            if (!root.TryGetProperty(
+                    "output",
+                    out JsonElement outputElement) ||
+                outputElement.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            foreach (JsonElement outputItem
+                     in outputElement.EnumerateArray())
+            {
+                if (!outputItem.TryGetProperty(
+                        "content",
+                        out JsonElement contentElement) ||
+                    contentElement.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (JsonElement contentItem
+                         in contentElement.EnumerateArray())
+                {
+                    if (contentItem.TryGetProperty(
+                            "text",
+                            out JsonElement textElement))
+                    {
+                        return textElement.GetString();
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private sealed class IntentExtractionResult
+        {
+            public string? Intent { get; set; }
+        }
+    }
+}
+
+
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------

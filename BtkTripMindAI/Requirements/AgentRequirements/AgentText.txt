@@ -1,0 +1,456 @@
+﻿  await Task.Delay(600);
+
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return new AgentResult
+                {
+                    IsSuccess = false,
+                    Intent = TravelIntent.Unknown,
+                    Message = "Lütfen geçerli bir mesaj giriniz."
+                };
+            }
+
+            TravelIntent intent = DetectIntent(message);
+
+            string responseMessage = CreateResponse(intent);
+
+            return new AgentResult
+            {
+                IsSuccess = true,
+                Intent = intent,
+                Message = responseMessage,
+                ToolName = GetToolName(intent)
+            };
+
+------------------------------------------------------------------------------------------
+
+ private static TravelIntent DetectIntent(string message)
+        {
+            string normalizedMessage = message
+                .Trim()
+                .ToLower(new System.Globalization.CultureInfo("tr-TR"));
+
+            if (normalizedMessage.Contains("hava") ||
+                normalizedMessage.Contains("sıcaklık") ||
+                normalizedMessage.Contains("yağmur"))
+            {
+                return TravelIntent.Weather;
+            }
+
+            if (normalizedMessage.Contains("otel") ||
+                normalizedMessage.Contains("konaklama"))
+            {
+                return TravelIntent.Hotel;
+            }
+
+            if (normalizedMessage.Contains("restoran") ||
+                normalizedMessage.Contains("yemek") ||
+                normalizedMessage.Contains("kahvaltı"))
+            {
+                return TravelIntent.Restaurant;
+            }
+
+            if (normalizedMessage.Contains("rota") ||
+                normalizedMessage.Contains("gezi planı") ||
+                normalizedMessage.Contains("günlük plan"))
+            {
+                return TravelIntent.Route;
+            }
+
+            if (normalizedMessage.Contains("döviz") ||
+                normalizedMessage.Contains("kur") ||
+                normalizedMessage.Contains("euro") ||
+                normalizedMessage.Contains("dolar"))
+            {
+                return TravelIntent.Currency;
+            }
+
+            if (normalizedMessage.Contains("uçuş") ||
+                normalizedMessage.Contains("uçak") ||
+                normalizedMessage.Contains("bilet"))
+            {
+                return TravelIntent.Flight;
+            }
+
+            if (normalizedMessage.Contains("ulaşım") ||
+                normalizedMessage.Contains("transfer") ||
+                normalizedMessage.Contains("havalimanı"))
+            {
+                return TravelIntent.Transportation;
+            }
+
+            if (normalizedMessage.Contains("gezilecek yer") ||
+                normalizedMessage.Contains("müze") ||
+                normalizedMessage.Contains("aktivite"))
+            {
+                return TravelIntent.Attraction;
+            }
+
+            if (normalizedMessage.Contains("şehir öner") ||
+                normalizedMessage.Contains("nereye git") ||
+                normalizedMessage.Contains("tatil yeri"))
+            {
+                return TravelIntent.CityRecommendation;
+            }
+
+            return TravelIntent.Unknown;
+        }
+
+        private static string CreateResponse(TravelIntent intent)
+        {
+            return intent switch
+            {
+                TravelIntent.Weather =>
+                    "Hava durumunu kontrol edebilirim. Hangi şehir ve tarih için bilgi almak istiyorsunuz?",
+
+                TravelIntent.Hotel =>
+                    "Size uygun otelleri listeleyebilirim. Şehir, tarih aralığı ve kişi sayısını paylaşır mısınız?",
+
+                TravelIntent.Restaurant =>
+                    "Restoran önerileri hazırlayabilirim. Hangi şehirde ve hangi mutfak türünde restoran arıyorsunuz?",
+
+                TravelIntent.Route =>
+                    "Sizin için bir seyahat rotası oluşturabilirim. Şehir, gün sayısı ve seyahat tercihlerinizi paylaşabilirsiniz.",
+
+                TravelIntent.Currency =>
+                    "Döviz hesaplaması yapabilirim. Tutarı ve çevirmek istediğiniz para birimlerini belirtir misiniz?",
+
+                TravelIntent.Flight =>
+                    "Uçuş seçeneklerini değerlendirebilirim. Kalkış ve varış şehirleriyle seyahat tarihinizi paylaşır mısınız?",
+
+                TravelIntent.Transportation =>
+                    "Şehir içi veya havalimanı ulaşımı konusunda yardımcı olabilirim. Başlangıç ve varış noktasını paylaşır mısınız?",
+
+                TravelIntent.Attraction =>
+                    "Gezilecek yerleri listeleyebilirim. Hangi şehir için öneri almak istiyorsunuz?",
+
+                TravelIntent.CityRecommendation =>
+                    "Size uygun bir şehir önerebilmem için seyahat tarihinizi, bütçenizi ve tatil tercihlerinizi paylaşır mısınız?",
+
+                _ =>
+                    "Talebinizi tam olarak anlayamadım. Hava durumu, otel, restoran, rota, uçuş veya şehir önerisi hakkında soru sorabilirsiniz."
+            };
+        }
+
+        private static string? GetToolName(TravelIntent intent)
+        {
+            return intent switch
+            {
+                TravelIntent.Weather => "WeatherTool",
+                TravelIntent.Hotel => "HotelTool",
+                TravelIntent.Restaurant => "RestaurantTool",
+                TravelIntent.Route => "RoutePlannerTool",
+                TravelIntent.Currency => "CurrencyTool",
+                TravelIntent.Flight => "FlightTool",
+                TravelIntent.Transportation => "TransportationTool",
+                TravelIntent.Attraction => "AttractionTool",
+                TravelIntent.CityRecommendation => "CityRecommendationTool",
+                _ => null
+            };
+        }
+
+
+------------------------------------------------------------------------------------------
+
+ [HttpPost]
+        public async Task<IActionResult> SendMessage(
+            [FromBody] AgentMessageRequestDto request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Message))
+            {
+                return BadRequest(new AgentMessageResponseDto
+                {
+                    IsSuccess = false,
+                    Message = "Lütfen geçerli bir mesaj giriniz.",
+                    Intent = "Unknown"
+                });
+            }
+
+            var result = await _agentService.ProcessMessageAsync(
+                request.Message
+            );
+
+            var response = new AgentMessageResponseDto
+            {
+                IsSuccess = result.IsSuccess,
+                Message = result.Message,
+                Intent = result.Intent.ToString(),
+                ToolName = result.ToolName
+            };
+
+            return result.IsSuccess
+                ? Ok(response)
+                : BadRequest(response);
+        }
+
+
+------------------------------------------------------------------------------------------
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const chatMessages = document.getElementById("chatMessages");
+        const messageInput = document.getElementById("messageInput");
+        const sendMessageButton = document.getElementById("sendMessageButton");
+        const aiThinking = document.getElementById("aiThinking");
+        const thinkingText = document.getElementById("thinkingText");
+        const quickPromptButtons = document.querySelectorAll(".quick-prompt");
+
+        function scrollChatToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function createUserMessage(message) {
+            const userMessageHtml = `
+                <div class="flex gap-4 items-start justify-end self-end max-w-[85%]">
+                    <div class="bg-primary-container/40 p-5 rounded-2xl rounded-tr-none border border-primary/10">
+                        <p class="text-body-md text-on-primary-container"></p>
+                    </div>
+
+                    <div class="w-10 h-10 rounded-full bg-secondary-fixed flex-shrink-0 overflow-hidden">
+                        <img class="w-full h-full object-cover"
+                             alt="Kullanıcı profil fotoğrafı"
+                             src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJ9m_0uCYjopEIK8G1vB_YYt2Unk0rfggH8Z5aCNyHXvyjzmI-XpQRnUUzbBnCyAD_dh1IsIxjA73JSkT9UG44QbDzwMko5A04jLsMefCKVId_ITvvlJS-eTmZNJvG-wkXqO0rAVF3VPpMOV22X2YHpwMK1nE_NFkEIaspYOpRwG1OQLQrNRUHp_7e4-O1bqsIxwTGa5Yj8L6Mape0_bhu9j4gBGOXaj3FmScFwbCC_g5WFJYoHuHgPA" />
+                    </div>
+                </div>
+            `;
+
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = userMessageHtml.trim();
+
+            const messageElement = wrapper.firstElementChild;
+            const messageText = messageElement.querySelector("p");
+
+            messageText.textContent = message;
+
+            chatMessages.insertBefore(messageElement, aiThinking);
+        }
+
+        function createAgentMessage(message) {
+            const agentMessageHtml = `
+                <div class="flex gap-4 items-start max-w-[85%]">
+                    <div class="w-10 h-10 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white">
+                        <span class="material-symbols-outlined">
+                            smart_toy
+                        </span>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl rounded-tl-none shadow-sm border border-outline-variant/20">
+                        <p class="text-body-md text-on-surface whitespace-pre-line"></p>
+                    </div>
+                </div>
+            `;
+
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = agentMessageHtml.trim();
+
+            const messageElement = wrapper.firstElementChild;
+            const messageText = messageElement.querySelector("p");
+
+            messageText.textContent = message;
+
+            chatMessages.insertBefore(messageElement, aiThinking);
+        }
+
+        function getThinkingMessage(intent) {
+            switch (intent) {
+                case "Weather":
+                    return "Hava durumu bilgileri kontrol ediliyor...";
+
+                case "Hotel":
+                    return "Size uygun oteller araştırılıyor...";
+
+                case "Restaurant":
+                    return "Restoran önerileri hazırlanıyor...";
+
+                case "Route":
+                    return "Seyahat rotanız oluşturuluyor...";
+
+                case "Currency":
+                    return "Döviz bilgileri hesaplanıyor...";
+
+                case "Flight":
+                    return "Uçuş seçenekleri araştırılıyor...";
+
+                case "Transportation":
+                    return "Ulaşım seçenekleri inceleniyor...";
+
+                case "Attraction":
+                    return "Gezilecek yerler hazırlanıyor...";
+
+                case "CityRecommendation":
+                    return "Size uygun şehirler analiz ediliyor...";
+
+                default:
+                    return "Seyahat talebiniz analiz ediliyor...";
+            }
+        }
+
+        function showThinking(message = "Seyahat talebiniz analiz ediliyor...") {
+            thinkingText.textContent = message;
+            aiThinking.classList.remove("hidden");
+            scrollChatToBottom();
+        }
+
+        function hideThinking() {
+            aiThinking.classList.add("hidden");
+        }
+
+        function setLoadingState(isLoading) {
+            sendMessageButton.disabled = isLoading;
+            messageInput.disabled = isLoading;
+
+            if (isLoading) {
+                sendMessageButton.classList.add(
+                    "opacity-60",
+                    "cursor-not-allowed"
+                );
+
+                messageInput.classList.add("opacity-70");
+            } else {
+                sendMessageButton.classList.remove(
+                    "opacity-60",
+                    "cursor-not-allowed"
+                );
+
+                messageInput.classList.remove("opacity-70");
+            }
+        }
+
+        async function getAgentResponse(userMessage) {
+            const response = await fetch("/Dashboard/SendMessage", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: userMessage
+                })
+            });
+
+            let result;
+
+            try {
+                result = await response.json();
+            } catch {
+                throw new Error(
+                    "Sunucudan geçerli bir cevap alınamadı."
+                );
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    result.message ||
+                    "Sunucu isteği başarısız oldu."
+                );
+            }
+
+            if (!result.isSuccess) {
+                throw new Error(
+                    result.message ||
+                    "Mesaj işlenirken bir hata oluştu."
+                );
+            }
+
+            return result;
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+
+            if (message === "") {
+                messageInput.focus();
+                return;
+            }
+
+            createUserMessage(message);
+
+            messageInput.value = "";
+
+            setLoadingState(true);
+
+            showThinking(
+                "Seyahat talebiniz analiz ediliyor..."
+            );
+
+            scrollChatToBottom();
+
+            try {
+                const agentResult = await getAgentResponse(message);
+
+                /*
+                 * Backend cevabı geldikten sonra intent bilgisine
+                 * göre thinking metnini kısa süreli değiştiriyoruz.
+                 */
+                thinkingText.textContent =
+                    getThinkingMessage(agentResult.intent);
+
+                console.log("Agent sonucu:", agentResult);
+                console.log("Intent:", agentResult.intent);
+                console.log("Tool:", agentResult.toolName);
+                console.log("Success:", agentResult.isSuccess);
+                console.log("Message:", agentResult.message);
+
+                /*
+                 * Aracın çalıştığını kullanıcıya kısa süre
+                 * göstermek için küçük bir bekleme ekledik.
+                 */
+                await new Promise(function (resolve) {
+                    setTimeout(resolve, 700);
+                });
+
+                hideThinking();
+
+                createAgentMessage(agentResult.message);
+            } catch (error) {
+                hideThinking();
+
+                createAgentMessage(
+                    error.message ||
+                    "Üzgünüm, mesajınızı işlerken bir hata oluştu."
+                );
+            } finally {
+                setLoadingState(false);
+
+                messageInput.focus();
+                scrollChatToBottom();
+            }
+        }
+
+        sendMessageButton.addEventListener("click", function () {
+            sendMessage();
+        });
+
+        messageInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        quickPromptButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                if (messageInput.disabled) {
+                    return;
+                }
+
+                messageInput.value = button.textContent.trim();
+                messageInput.focus();
+            });
+        });
+
+        scrollChatToBottom();
+        messageInput.focus();
+    });
+</script>
+
+
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------

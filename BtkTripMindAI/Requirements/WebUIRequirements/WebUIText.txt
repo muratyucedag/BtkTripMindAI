@@ -1,0 +1,80 @@
+﻿function updateDestination(city, country) {
+    const hasCity =
+        typeof city === "string" &&
+        city.trim() !== "";
+
+    const hasCountry =
+        typeof country === "string" &&
+        country.trim() !== "";
+
+    if (!hasCity && !hasCountry) {
+        return;
+    }
+
+    if (hasCity) {
+        detectedCity.textContent = city.trim();
+    }
+
+    if (hasCountry) {
+        detectedCountry.textContent = country.trim();
+    }
+
+    if (destinationSeparator) {
+        destinationSeparator.classList.toggle(
+            "hidden",
+            !hasCity || !hasCountry
+        );
+    }
+}
+
+
+-----------------------------------------------------------------------------------------------------------------
+
+<!-- City Hero -->
+<div class="relative rounded-3xl overflow-hidden h-72 shadow-xl group">
+
+    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+         data-alt="Seyahat destinasyonu şehir görünümü"
+         style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCau3g5vyEBrNIvclL39NDwwPOx69dMSifFgbtJEvzlPJYI4994a-2lM5F9FoJiMvS9Ey3g_IhdcpfeZyqKhKnwsVqSVTMPKqixHEIZCpeUXRl4CoF2qMJ6JiJPFKPjCP9iszi9cufdUOlSY2UTKN1Wdp_50HnT61Ttv4vs8-oxsbJ3irWpqg2eXHVtfyHlR2N78yBfFg23yDvAc3aIOx_BQGIoLU4GFWvU4v50dUFuj8mVfC99lX6BBQ')">
+    </div>
+
+    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+
+    <div class="absolute bottom-6 left-6 text-white">
+
+        <div class="flex gap-2 mb-2">
+            <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] uppercase font-bold tracking-widest">
+                Deniz
+            </span>
+
+            <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] uppercase font-bold tracking-widest">
+                Kültür
+            </span>
+
+            <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] uppercase font-bold tracking-widest">
+                Aile Dostu
+            </span>
+        </div>
+
+        <h3 class="font-display-lg leading-none">
+            <span id="detectedCity">
+                Şehir seçilmedi
+            </span>
+
+            <span id="destinationSeparator"
+                  class="hidden">
+                ,
+            </span>
+
+            <span id="detectedCountry"></span>
+        </h3>
+    </div>
+</div>
+
+
+-----------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------

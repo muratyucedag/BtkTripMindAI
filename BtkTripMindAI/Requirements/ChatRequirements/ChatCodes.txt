@@ -1,0 +1,848 @@
+﻿----------------------------------------------------------------------------------
+
+<main class="w-[40%] h-screen flex flex-col bg-surface-container-low/30 border-r border-outline-variant/30">
+
+    <!-- Chat Header -->
+    <header class="px-8 py-6 flex items-center justify-between glass-panel sticky top-0 z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
+
+            <div>
+                <h2 class="font-headline-md text-primary">
+                    Seyahat Asistanınız
+                </h2>
+
+                <p class="text-[11px] text-on-surface-variant">
+                    Çevrimiçi
+                </p>
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="button"
+                    class="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+                <span class="material-symbols-outlined"
+                      data-icon="notifications">
+                    notifications
+                </span>
+            </button>
+
+            <button type="button"
+                    class="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+                <span class="material-symbols-outlined"
+                      data-icon="help_outline">
+                    help_outline
+                </span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Messages Area -->
+    <div id="chatMessages"
+         class="flex-1 overflow-y-auto px-8 py-6 chat-scroll flex flex-col gap-8">
+
+        <!-- AI Message -->
+        <div class="flex gap-4 items-start max-w-[85%]">
+            <div class="w-10 h-10 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white">
+                <span class="material-symbols-outlined"
+                      data-icon="smart_toy">
+                    smart_toy
+                </span>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl rounded-tl-none shadow-sm border border-outline-variant/20">
+                <p class="text-body-md text-on-surface">
+                    Merhaba Murat! Bugün senin için nasıl bir seyahat planlayalım?
+                </p>
+            </div>
+        </div>
+
+        <!-- User Message -->
+        <div class="flex gap-4 items-start justify-end self-end max-w-[85%]">
+            <div class="bg-primary-container/40 p-5 rounded-2xl rounded-tr-none border border-primary/10">
+                <p class="text-body-md text-on-primary-container">
+                    Eylül ayında eşim ve çocuğumla 3 günlük Fransa Nice seyahati
+                    planlamak istiyorum.
+                </p>
+            </div>
+
+            <div class="w-10 h-10 rounded-full bg-secondary-fixed flex-shrink-0 overflow-hidden">
+                <img class="w-full h-full object-cover"
+                     alt="Kullanıcı profil fotoğrafı"
+                     src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJ9m_0uCYjopEIK8G1vB_YYt2Unk0rfggH8Z5aCNyHXvyjzmI-XpQRnUUzbBnCyAD_dh1IsIxjA73JSkT9UG44QbDzwMko5A04jLsMefCKVId_ITvvlJS-eTmZNJvG-wkXqO0rAVF3VPpMOV22X2YHpwMK1nE_NFkEIaspYOpRwG1OQLQrNRUHp_7e4-O1bqsIxwTGa5Yj8L6Mape0_bhu9j4gBGOXaj3FmScFwbCC_g5WFJYoHuHgPA" />
+            </div>
+        </div>
+
+        <!-- AI Thinking -->
+        <div id="aiThinking"
+             class="hidden flex gap-4 items-start max-w-[85%]">
+
+            <div class="w-10 h-10 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white">
+                <span class="material-symbols-outlined"
+                      data-icon="smart_toy">
+                    smart_toy
+                </span>
+            </div>
+
+            <div class="bg-white/80 p-4 rounded-2xl rounded-tl-none flex items-center gap-3">
+                <div class="flex gap-1">
+                    <div class="w-2 h-2 bg-primary/40 rounded-full animate-bounce"></div>
+
+                    <div class="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+
+                    <div class="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                </div>
+
+                <p id="thinkingText"
+                   class="text-label-md text-on-surface-variant italic">
+                    Seyahat tercihlerinizi analiz ediyorum...
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Area -->
+    <footer class="p-8 space-y-4">
+
+        <!-- Quick Prompts -->
+        <div class="flex flex-wrap gap-2">
+
+            <button type="button"
+                    class="quick-prompt px-4 py-2 bg-white border border-outline-variant/30 rounded-full text-label-md text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-all">
+                Bir şehir öner
+            </button>
+
+            <button type="button"
+                    class="quick-prompt px-4 py-2 bg-white border border-outline-variant/30 rounded-full text-label-md text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-all">
+                3 günlük rota oluştur
+            </button>
+
+            <button type="button"
+                    class="quick-prompt px-4 py-2 bg-white border border-outline-variant/30 rounded-full text-label-md text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-all">
+                Hava durumunu kontrol et
+            </button>
+
+            <button type="button"
+                    class="quick-prompt px-4 py-2 bg-white border border-outline-variant/30 rounded-full text-label-md text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-all">
+                Otel listele
+            </button>
+
+            <button type="button"
+                    class="quick-prompt px-4 py-2 bg-white border border-outline-variant/30 rounded-full text-label-md text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-all">
+                Restoran önerileri
+            </button>
+        </div>
+
+        <!-- Message Input -->
+        <div class="relative group">
+
+            <div class="absolute inset-y-0 left-4 flex items-center gap-2 text-outline">
+
+                <button type="button"
+                        class="hover:text-primary transition-colors"
+                        title="Dosya ekle">
+                    <span class="material-symbols-outlined"
+                          data-icon="attach_file">
+                        attach_file
+                    </span>
+                </button>
+
+                <button type="button"
+                        class="hover:text-primary transition-colors"
+                        title="Konum ekle">
+                    <span class="material-symbols-outlined"
+                          data-icon="location_on">
+                        location_on
+                    </span>
+                </button>
+
+                <button type="button"
+                        class="hover:text-primary transition-colors"
+                        title="Tarih seç">
+                    <span class="material-symbols-outlined"
+                          data-icon="calendar_month">
+                        calendar_month
+                    </span>
+                </button>
+            </div>
+
+            <input id="messageInput"
+                   class="w-full bg-white border-none py-4 pl-32 pr-16 rounded-2xl shadow-lg ring-1 ring-outline-variant/20 focus:ring-2 focus:ring-primary text-body-md transition-all"
+                   placeholder="Asistanınıza sorun..."
+                   type="text"
+                   autocomplete="off" />
+
+            <button id="sendMessageButton"
+                    type="button"
+                    class="absolute inset-y-2 right-2 px-4 bg-primary text-white rounded-xl flex items-center justify-center hover:bg-surface-tint transition-colors">
+                <span class="material-symbols-outlined"
+                      data-icon="send">
+                    send
+                </span>
+            </button>
+        </div>
+    </footer>
+</main>
+
+----------------------------------------------------------------------------------
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const chatMessages = document.getElementById("chatMessages");
+        const messageInput = document.getElementById("messageInput");
+        const sendMessageButton = document.getElementById("sendMessageButton");
+        const aiThinking = document.getElementById("aiThinking");
+        const quickPromptButtons = document.querySelectorAll(".quick-prompt");
+
+        function scrollChatToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function createUserMessage(message) {
+            const userMessageHtml = `
+                <div class="flex gap-4 items-start justify-end self-end max-w-[85%]">
+                    <div class="bg-primary-container/40 p-5 rounded-2xl rounded-tr-none border border-primary/10">
+                        <p class="text-body-md text-on-primary-container"></p>
+                    </div>
+
+                    <div class="w-10 h-10 rounded-full bg-secondary-fixed flex-shrink-0 overflow-hidden">
+                        <img class="w-full h-full object-cover"
+                             alt="Kullanıcı profil fotoğrafı"
+                             src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJ9m_0uCYjopEIK8G1vB_YYt2Unk0rfggH8Z5aCNyHXvyjzmI-XpQRnUUzbBnCyAD_dh1IsIxjA73JSkT9UG44QbDzwMko5A04jLsMefCKVId_ITvvlJS-eTmZNJvG-wkXqO0rAVF3VPpMOV22X2YHpwMK1nE_NFkEIaspYOpRwG1OQLQrNRUHp_7e4-O1bqsIxwTGa5Yj8L6Mape0_bhu9j4gBGOXaj3FmScFwbCC_g5WFJYoHuHgPA" />
+                    </div>
+                </div>
+            `;
+
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = userMessageHtml.trim();
+
+            const messageElement = wrapper.firstElementChild;
+
+            messageElement.querySelector("p").textContent = message;
+
+            chatMessages.insertBefore(messageElement, aiThinking);
+        }
+
+        function createAgentMessage(message) {
+            const agentMessageHtml = `
+                <div class="flex gap-4 items-start max-w-[85%]">
+                    <div class="w-10 h-10 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white">
+                        <span class="material-symbols-outlined">
+                            smart_toy
+                        </span>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl rounded-tl-none shadow-sm border border-outline-variant/20">
+                        <p class="text-body-md text-on-surface"></p>
+                    </div>
+                </div>
+            `;
+
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = agentMessageHtml.trim();
+
+            const messageElement = wrapper.firstElementChild;
+
+            messageElement.querySelector("p").textContent = message;
+
+            chatMessages.insertBefore(messageElement, aiThinking);
+        }
+
+        function showThinking() {
+            aiThinking.classList.remove("hidden");
+            scrollChatToBottom();
+        }
+
+        function hideThinking() {
+            aiThinking.classList.add("hidden");
+        }
+
+        function getMockAgentResponse(userMessage) {
+            const normalizedMessage = userMessage.toLocaleLowerCase("tr-TR");
+
+            if (normalizedMessage.includes("hava")) {
+                return "Elbette. Hangi şehrin hava durumunu kontrol etmemi istersiniz?";
+            }
+
+            if (normalizedMessage.includes("otel")) {
+                return "Size uygun otelleri listeleyebilirim. Gideceğiniz şehir, tarih aralığı ve kişi sayısını paylaşır mısınız?";
+            }
+
+            if (normalizedMessage.includes("restoran")) {
+                return "Restoran önerileri hazırlayabilirim. Hangi şehirde ve hangi mutfak türünde restoran arıyorsunuz?";
+            }
+
+            if (normalizedMessage.includes("rota")) {
+                return "Memnuniyetle bir seyahat rotası hazırlayabilirim. Şehir, gün sayısı ve seyahat tercihlerinizi paylaşabilirsiniz.";
+            }
+
+            if (normalizedMessage.includes("şehir")) {
+                return "Size bir şehir önerebilmem için seyahat tarihinizi, bütçenizi ve deniz, kültür veya doğa tercihinizi öğrenmem gerekiyor.";
+            }
+
+            return "Talebinizi aldım. Size daha iyi yardımcı olabilmem için seyahat etmek istediğiniz şehir, tarih ve kişi sayısı bilgilerini paylaşabilirsiniz.";
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+
+            if (message === "") {
+                messageInput.focus();
+                return;
+            }
+
+            createUserMessage(message);
+
+            messageInput.value = "";
+            messageInput.focus();
+
+            showThinking();
+
+            setTimeout(function () {
+                hideThinking();
+
+                const agentResponse = getMockAgentResponse(message);
+
+                createAgentMessage(agentResponse);
+
+                scrollChatToBottom();
+            }, 1200);
+
+            scrollChatToBottom();
+        }
+
+        sendMessageButton.addEventListener("click", function () {
+            sendMessage();
+        });
+
+        messageInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        quickPromptButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                messageInput.value = button.textContent.trim();
+                messageInput.focus();
+            });
+        });
+
+        scrollChatToBottom();
+    });
+</script>
+
+
+----------------------------------------------------------------------------------
+
+ public IActionResult Index()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult SendMessage([FromBody] AgentMessageRequestDto request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Message))
+            {
+                return BadRequest(new AgentMessageResponseDto
+                {
+                    IsSuccess = false,
+                    Message = "Lütfen geçerli bir mesaj giriniz."
+                });
+            }
+
+            string agentResponse = GetMockAgentResponse(request.Message);
+
+            return Ok(new AgentMessageResponseDto
+            {
+                IsSuccess = true,
+                Message = agentResponse
+            });
+        }
+
+        private static string GetMockAgentResponse(string userMessage)
+        {
+            string normalizedMessage = userMessage
+                .Trim()
+                .ToLower(new System.Globalization.CultureInfo("tr-TR"));
+
+            if (normalizedMessage.Contains("hava"))
+            {
+                return "Elbette, hava durumunu kontrol edebilirim. Hangi şehir için bilgi almak istiyorsunuz?";
+            }
+
+            if (normalizedMessage.Contains("otel"))
+            {
+                return "Size uygun otelleri listeleyebilirim. Şehir, tarih aralığı ve kişi sayısını paylaşır mısınız?";
+            }
+
+            if (normalizedMessage.Contains("restoran"))
+            {
+                return "Restoran önerileri hazırlayabilirim. Hangi şehirde ve hangi mutfak türünde restoran arıyorsunuz?";
+            }
+
+            if (normalizedMessage.Contains("rota"))
+            {
+                return "Memnuniyetle bir seyahat rotası oluşturabilirim. Şehir, gün sayısı ve seyahat tercihlerinizi paylaşabilirsiniz.";
+            }
+
+            if (normalizedMessage.Contains("döviz") ||
+                normalizedMessage.Contains("kur") ||
+                normalizedMessage.Contains("euro") ||
+                normalizedMessage.Contains("dolar"))
+            {
+                return "Döviz hesaplaması yapabilirim. Çevirmek istediğiniz tutarı ve para birimlerini paylaşır mısınız?";
+            }
+
+            if (normalizedMessage.Contains("şehir"))
+            {
+                return "Size uygun bir şehir önerebilmem için seyahat tarihinizi, bütçenizi ve tatil tercihinizi öğrenmem gerekiyor.";
+            }
+
+            return "Talebinizi aldım. Gideceğiniz şehir, seyahat tarihi, kişi sayısı ve bütçe bilgilerini paylaşarak başlayabilirsiniz.";
+        }
+
+
+----------------------------------------------------------------------------------
+
+async function getAgentResponse(userMessage) {
+    const response = await fetch("/Dashboard/SendMessage", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            message: userMessage
+        })
+    });
+
+    let result;
+
+    try {
+        result = await response.json();
+    } catch {
+        throw new Error("Sunucudan geçerli bir cevap alınamadı.");
+    }
+
+    if (!response.ok || !result.isSuccess) {
+        throw new Error(
+            result.message || "Mesaj işlenirken bir hata oluştu."
+        );
+    }
+
+    return result.message;
+}
+
+
+----------------------------------------------------------------------------------
+
+async function sendMessage() {
+    const message = messageInput.value.trim();
+
+    if (message === "") {
+        messageInput.focus();
+        return;
+    }
+
+    createUserMessage(message);
+
+    messageInput.value = "";
+    messageInput.focus();
+
+    sendMessageButton.disabled = true;
+    messageInput.disabled = true;
+
+    showThinking();
+    scrollChatToBottom();
+
+    try {
+        const agentResponse = await getAgentResponse(message);
+
+        hideThinking();
+
+        createAgentMessage(agentResponse);
+    }
+    catch (error) {
+        hideThinking();
+
+        createAgentMessage(
+            error.message || "Üzgünüm, mesajınızı işlerken bir hata oluştu."
+        );
+    }
+    finally {
+        sendMessageButton.disabled = false;
+        messageInput.disabled = false;
+
+        messageInput.focus();
+        scrollChatToBottom();
+    }
+}
+
+
+----------------------------------------------------------------------------------
+
+<p id="thinkingText"
+   class="text-label-md text-on-surface-variant italic">
+    Asistanınız talebinizi değerlendiriyor...
+</p>
+
+
+----------------------------------------------------------------------------------
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const chatMessages = document.getElementById("chatMessages");
+        const messageInput = document.getElementById("messageInput");
+        const sendMessageButton = document.getElementById("sendMessageButton");
+        const aiThinking = document.getElementById("aiThinking");
+        const quickPromptButtons = document.querySelectorAll(".quick-prompt");
+
+        function scrollChatToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function createUserMessage(message) {
+            const userMessageHtml = `
+                <div class="flex gap-4 items-start justify-end self-end max-w-[85%]">
+                    <div class="bg-primary-container/40 p-5 rounded-2xl rounded-tr-none border border-primary/10">
+                        <p class="text-body-md text-on-primary-container"></p>
+                    </div>
+
+                    <div class="w-10 h-10 rounded-full bg-secondary-fixed flex-shrink-0 overflow-hidden">
+                        <img class="w-full h-full object-cover"
+                             alt="Kullanıcı profil fotoğrafı"
+                             src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJ9m_0uCYjopEIK8G1vB_YYt2Unk0rfggH8Z5aCNyHXvyjzmI-XpQRnUUzbBnCyAD_dh1IsIxjA73JSkT9UG44QbDzwMko5A04jLsMefCKVId_ITvvlJS-eTmZNJvG-wkXqO0rAVF3VPpMOV22X2YHpwMK1nE_NFkEIaspYOpRwG1OQLQrNRUHp_7e4-O1bqsIxwTGa5Yj8L6Mape0_bhu9j4gBGOXaj3FmScFwbCC_g5WFJYoHuHgPA" />
+                    </div>
+                </div>
+            `;
+
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = userMessageHtml.trim();
+
+            const messageElement = wrapper.firstElementChild;
+
+            messageElement.querySelector("p").textContent = message;
+
+            chatMessages.insertBefore(messageElement, aiThinking);
+        }
+
+        function createAgentMessage(message) {
+            const agentMessageHtml = `
+                <div class="flex gap-4 items-start max-w-[85%]">
+                    <div class="w-10 h-10 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white">
+                        <span class="material-symbols-outlined">
+                            smart_toy
+                        </span>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl rounded-tl-none shadow-sm border border-outline-variant/20">
+                        <p class="text-body-md text-on-surface"></p>
+                    </div>
+                </div>
+            `;
+
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = agentMessageHtml.trim();
+
+            const messageElement = wrapper.firstElementChild;
+
+            messageElement.querySelector("p").textContent = message;
+
+            chatMessages.insertBefore(messageElement, aiThinking);
+        }
+
+        function showThinking() {
+            aiThinking.classList.remove("hidden");
+            scrollChatToBottom();
+        }
+
+        function hideThinking() {
+            aiThinking.classList.add("hidden");
+        }
+
+          async function getAgentResponse(userMessage) {
+        const response = await fetch("/Dashboard/SendMessage", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: userMessage
+            })
+        });
+
+        let result;
+
+        try {
+            result = await response.json();
+        } catch {
+            throw new Error("Sunucudan geçerli bir cevap alınamadı.");
+        }
+
+        if (!response.ok || !result.isSuccess) {
+            throw new Error(
+                result.message || "Mesaj işlenirken bir hata oluştu."
+            );
+        }
+
+        return result.message;
+    }
+
+         async function sendMessage() {
+        const message = messageInput.value.trim();
+
+        if (message === "") {
+            messageInput.focus();
+            return;
+        }
+
+        createUserMessage(message);
+
+        messageInput.value = "";
+        messageInput.focus();
+
+        sendMessageButton.disabled = true;
+        messageInput.disabled = true;
+
+        showThinking();
+        scrollChatToBottom();
+
+        try {
+            const agentResponse = await getAgentResponse(message);
+
+            hideThinking();
+
+            createAgentMessage(agentResponse);
+        }
+        catch (error) {
+            hideThinking();
+
+            createAgentMessage(
+                error.message || "Üzgünüm, mesajınızı işlerken bir hata oluştu."
+            );
+        }
+        finally {
+            sendMessageButton.disabled = false;
+            messageInput.disabled = false;
+
+            messageInput.focus();
+            scrollChatToBottom();
+        }
+    }
+
+        sendMessageButton.addEventListener("click", function () {
+            sendMessage();
+        });
+
+        messageInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        quickPromptButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                messageInput.value = button.textContent.trim();
+                messageInput.focus();
+            });
+        });
+
+        scrollChatToBottom();
+    });
+</script>
+
+
+----------------------------------------------------------------------------------
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const chatMessages = document.getElementById("chatMessages");
+        const messageInput = document.getElementById("messageInput");
+        const sendMessageButton = document.getElementById("sendMessageButton");
+        const aiThinking = document.getElementById("aiThinking");
+        const quickPromptButtons = document.querySelectorAll(".quick-prompt");
+
+        function scrollChatToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function createUserMessage(message) {
+            const userMessageHtml = `
+                <div class="flex gap-4 items-start justify-end self-end max-w-[85%]">
+                    <div class="bg-primary-container/40 p-5 rounded-2xl rounded-tr-none border border-primary/10">
+                        <p class="text-body-md text-on-primary-container"></p>
+                    </div>
+
+                    <div class="w-10 h-10 rounded-full bg-secondary-fixed flex-shrink-0 overflow-hidden">
+                        <img class="w-full h-full object-cover"
+                             alt="Kullanıcı profil fotoğrafı"
+                             src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJ9m_0uCYjopEIK8G1vB_YYt2Unk0rfggH8Z5aCNyHXvyjzmI-XpQRnUUzbBnCyAD_dh1IsIxjA73JSkT9UG44QbDzwMko5A04jLsMefCKVId_ITvvlJS-eTmZNJvG-wkXqO0rAVF3VPpMOV22X2YHpwMK1nE_NFkEIaspYOpRwG1OQLQrNRUHp_7e4-O1bqsIxwTGa5Yj8L6Mape0_bhu9j4gBGOXaj3FmScFwbCC_g5WFJYoHuHgPA" />
+                    </div>
+                </div>
+            `;
+
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = userMessageHtml.trim();
+
+            const messageElement = wrapper.firstElementChild;
+            const messageText = messageElement.querySelector("p");
+
+            messageText.textContent = message;
+
+            chatMessages.insertBefore(messageElement, aiThinking);
+        }
+
+        function createAgentMessage(message) {
+            const agentMessageHtml = `
+                <div class="flex gap-4 items-start max-w-[85%]">
+                    <div class="w-10 h-10 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white">
+                        <span class="material-symbols-outlined">
+                            smart_toy
+                        </span>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl rounded-tl-none shadow-sm border border-outline-variant/20">
+                        <p class="text-body-md text-on-surface whitespace-pre-line"></p>
+                    </div>
+                </div>
+            `;
+
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = agentMessageHtml.trim();
+
+            const messageElement = wrapper.firstElementChild;
+            const messageText = messageElement.querySelector("p");
+
+            messageText.textContent = message;
+
+            chatMessages.insertBefore(messageElement, aiThinking);
+        }
+
+        function showThinking() {
+            aiThinking.classList.remove("hidden");
+            scrollChatToBottom();
+        }
+
+        function hideThinking() {
+            aiThinking.classList.add("hidden");
+        }
+
+        function setLoadingState(isLoading) {
+            sendMessageButton.disabled = isLoading;
+            messageInput.disabled = isLoading;
+
+            if (isLoading) {
+                sendMessageButton.classList.add("opacity-60", "cursor-not-allowed");
+                messageInput.classList.add("opacity-70");
+            } else {
+                sendMessageButton.classList.remove("opacity-60", "cursor-not-allowed");
+                messageInput.classList.remove("opacity-70");
+            }
+        }
+
+        async function getAgentResponse(userMessage) {
+            const response = await fetch("/Dashboard/SendMessage", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: userMessage
+                })
+            });
+
+            let result;
+
+            try {
+                result = await response.json();
+            } catch {
+                throw new Error("Sunucudan geçerli bir cevap alınamadı.");
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    result.message || "Sunucu isteği başarısız oldu."
+                );
+            }
+
+            if (!result.isSuccess) {
+                throw new Error(
+                    result.message || "Mesaj işlenirken bir hata oluştu."
+                );
+            }
+
+            return result.message;
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+
+            if (message === "") {
+                messageInput.focus();
+                return;
+            }
+
+            createUserMessage(message);
+
+            messageInput.value = "";
+
+            setLoadingState(true);
+            showThinking();
+            scrollChatToBottom();
+
+            try {
+                const agentResponse = await getAgentResponse(message);
+
+                hideThinking();
+                createAgentMessage(agentResponse);
+            } catch (error) {
+                hideThinking();
+
+                createAgentMessage(
+                    error.message ||
+                    "Üzgünüm, mesajınızı işlerken bir hata oluştu."
+                );
+            } finally {
+                setLoadingState(false);
+
+                messageInput.focus();
+                scrollChatToBottom();
+            }
+        }
+
+        sendMessageButton.addEventListener("click", function () {
+            sendMessage();
+        });
+
+        messageInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        quickPromptButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                if (messageInput.disabled) {
+                    return;
+                }
+
+                messageInput.value = button.textContent.trim();
+                messageInput.focus();
+            });
+        });
+
+        scrollChatToBottom();
+        messageInput.focus();
+    });
+</script>
+
+
+----------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
