@@ -1,0 +1,317 @@
+﻿-----------------------------------------------------------------------------------------------------
+
+ Accommodation,
+    Flight,
+    Transportation,
+    Food,
+    Activity,
+    Shopping,
+    Insurance,
+    Internet,
+    Other
+
+
+-----------------------------------------------------------------------------------------------------
+
+using BtkTripMindAI.Dtos.BudgetDtos;
+
+namespace BtkTripMindAI.Services.BudgetServices
+{
+    public class BudgetService : IBudgetService
+    {
+        public Task<BudgetResult> CalculateBudgetAsync(
+            string city,
+            string? country,
+            int dayCount,
+            int adultCount,
+            int childCount)
+        {
+            if (dayCount <= 0)
+            {
+                return Task.FromResult(new BudgetResult
+                {
+                    IsSuccess = false,
+                    Currency = "EUR",
+                    Description = "Gün sayısı 1 veya daha büyük olmalıdır."
+                });
+            }
+
+            if (adultCount <= 0)
+            {
+                return Task.FromResult(new BudgetResult
+                {
+                    IsSuccess = false,
+                    Currency = "EUR",
+                    Description = "En az 1 yetişkin bilgisi girilmelidir."
+                });
+            }
+
+            if (childCount < 0)
+            {
+                childCount = 0;
+            }
+
+            int totalPeople = adultCount + childCount;
+
+            /*
+             * Bu değerler şimdilik örnek ve kural tabanlıdır.
+             * İleride OpenAI veya gerçek fiyat servislerinden alınacaktır.
+             */
+
+            decimal nightlyHotelPrice = 180m;
+
+            decimal dailyFoodPricePerAdult = 45m;
+            decimal dailyFoodPricePerChild = 25m;
+
+            decimal dailyTransportationPricePerPerson = 12m;
+
+            decimal dailyActivityPricePerAdult = 30m;
+            decimal dailyActivityPricePerChild = 15m;
+
+            decimal accommodationAmount =
+                nightlyHotelPrice * dayCount;
+
+            decimal foodAmount =
+                (
+                    adultCount * dailyFoodPricePerAdult +
+                    childCount * dailyFoodPricePerChild
+                )
+                * dayCount;
+
+            decimal transportationAmount =
+                totalPeople *
+                dailyTransportationPricePerPerson *
+                dayCount;
+
+            decimal activityAmount =
+                (
+                    adultCount * dailyActivityPricePerAdult +
+                    childCount * dailyActivityPricePerChild
+                )
+                * dayCount;
+
+            decimal totalAmount =
+                accommodationAmount +
+                foodAmount +
+                transportationAmount +
+                activityAmount;
+
+            var result = new BudgetResult
+            {
+                IsSuccess = true,
+
+                Currency = "EUR",
+
+                TotalAmount = totalAmount,
+
+                Description =
+                    $"{city} için {adultCount} yetişkin, " +
+                    $"{childCount} çocuk ve {dayCount} günlük " +
+                    "orta segment bir seyahat dikkate alınarak " +
+                    "tahmini bütçe oluşturulmuştur.",
+
+                Items = new List<BudgetItem>
+                {
+                    new BudgetItem
+                    {
+                        Category = "Accommodation",
+                        Amount = accommodationAmount,
+                        Percentage = CalculatePercentage(
+                            accommodationAmount,
+                            totalAmount)
+                    },
+
+                    new BudgetItem
+                    {
+                        Category = "Food",
+                        Amount = foodAmount,
+                        Percentage = CalculatePercentage(
+                            foodAmount,
+                            totalAmount)
+                    },
+
+                    new BudgetItem
+                    {
+                        Category = "Transportation",
+                        Amount = transportationAmount,
+                        Percentage = CalculatePercentage(
+                            transportationAmount,
+                            totalAmount)
+                    },
+
+                    new BudgetItem
+                    {
+                        Category = "Activities",
+                        Amount = activityAmount,
+                        Percentage = CalculatePercentage(
+                            activityAmount,
+                            totalAmount)
+                    }
+                }
+            };
+
+            return Task.FromResult(result);
+        }
+
+        private static int CalculatePercentage(
+            decimal amount,
+            decimal totalAmount)
+        {
+            if (totalAmount <= 0)
+            {
+                return 0;
+            }
+
+            return (int)Math.Round(
+                amount / totalAmount * 100,
+                MidpointRounding.AwayFromZero);
+        }
+    }
+}
+
+
+-----------------------------------------------------------------------------------------------------
+
+if (intent == TravelIntent.Budget)
+{
+    if (string.IsNullOrWhiteSpace(city))
+    {
+        return new AgentResult
+        {
+            IsSuccess = true,
+            Intent = TravelIntent.Budget,
+            Message =
+                "Seyahat bütçesi hesaplayabilirim. " +
+                "Hangi şehir için bütçe oluşturmamı istersiniz?"
+        };
+    }
+
+    var budgetResult =
+        await _budgetService.CalculateBudgetAsync(
+            city,
+            country,
+            travelDetails.DayCount,
+            travelDetails.AdultCount,
+            travelDetails.ChildCount);
+
+    if (!budgetResult.IsSuccess)
+    {
+        return new AgentResult
+        {
+            IsSuccess = false,
+            Intent = TravelIntent.Budget,
+            ToolName = nameof(BudgetService),
+            City = city,
+            Country = country,
+            Budget = budgetResult,
+            Message =
+                budgetResult.Description
+                ?? "Seyahat bütçesi hesaplanamadı."
+        };
+    }
+
+    return new AgentResult
+    {
+        IsSuccess = true,
+        Intent = TravelIntent.Budget,
+        ToolName = nameof(BudgetService),
+        City = city,
+        Country = country,
+        Budget = budgetResult,
+        Message =
+            $"{city} için {travelDetails.DayCount} günlük " +
+            $"tahmini seyahat bütçesi hazırlandı. " +
+            $"Toplam: {budgetResult.TotalAmount:0.##} " +
+            $"{budgetResult.Currency}."
+    };
+}
+
+
+-----------------------------------------------------------------------------------------------------
+
+if (intent == TravelIntent.Budget)
+{
+    if (string.IsNullOrWhiteSpace(city))
+    {
+        return new AgentResult
+        {
+            IsSuccess = true,
+            Intent = TravelIntent.Budget,
+
+            DayCount = travelDetails.DayCount,
+            AdultCount = travelDetails.AdultCount,
+            ChildCount = travelDetails.ChildCount,
+            BudgetLevel = travelDetails.BudgetLevel,
+
+            Message =
+                "Seyahat bütçesi hesaplayabilirim. " +
+                "Hangi şehir için bütçe oluşturmamı istersiniz?"
+        };
+    }
+
+    var budgetResult =
+        await _budgetService.CalculateBudgetAsync(
+            city,
+            country,
+            travelDetails.DayCount,
+            travelDetails.AdultCount,
+            travelDetails.ChildCount);
+
+    if (!budgetResult.IsSuccess)
+    {
+        return new AgentResult
+        {
+            IsSuccess = false,
+            Intent = TravelIntent.Budget,
+            ToolName = nameof(BudgetService),
+
+            City = city,
+            Country = country,
+
+            DayCount = travelDetails.DayCount,
+            AdultCount = travelDetails.AdultCount,
+            ChildCount = travelDetails.ChildCount,
+            BudgetLevel = travelDetails.BudgetLevel,
+
+            Budget = budgetResult,
+
+            Message =
+                budgetResult.Description
+                ?? "Seyahat bütçesi hesaplanamadı."
+        };
+    }
+
+    return new AgentResult
+    {
+        IsSuccess = true,
+        Intent = TravelIntent.Budget,
+        ToolName = nameof(BudgetService),
+
+        City = city,
+        Country = country,
+
+        DayCount = travelDetails.DayCount,
+        AdultCount = travelDetails.AdultCount,
+        ChildCount = travelDetails.ChildCount,
+        BudgetLevel = travelDetails.BudgetLevel,
+
+        Budget = budgetResult,
+
+        Message =
+            $"{city} için {travelDetails.DayCount} günlük, " +
+            $"{travelDetails.AdultCount} yetişkin ve " +
+            $"{travelDetails.ChildCount} çocuk için " +
+            $"tahmini seyahat bütçesi hazırlandı. " +
+            $"Toplam: {budgetResult.TotalAmount:0.##} " +
+            $"{budgetResult.Currency}."
+    };
+}
+
+
+-----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------

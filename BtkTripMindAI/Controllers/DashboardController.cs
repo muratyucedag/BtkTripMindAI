@@ -39,7 +39,17 @@ namespace BtkTripMindAI.Controllers
                 Intent = result.Intent.ToString(),
                 ToolName = result.ToolName,
                 City = result.City,
-                Country = result.Country
+                Country = result.Country,
+                Weather = result.Weather,
+                CoverImageUrl = result.CoverImageUrl,
+                Route = result.Route,
+                Restaurant = result.Restaurant,
+                Hotel = result.Hotel,
+                DayCount = result.DayCount,
+                AdultCount = result.AdultCount,
+                ChildCount = result.ChildCount,
+                BudgetLevel = result.BudgetLevel,
+                Budget = result.Budget
             };
 
             return result.IsSuccess ? Ok(response) : BadRequest(response);

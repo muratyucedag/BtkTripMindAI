@@ -1,0 +1,166 @@
+﻿----------------------------------------------------------------------------------------------------------
+
+<!-- Hotels -->
+<div class="space-y-4">
+
+    <div class="flex items-center justify-between">
+        <h5 class="text-label-md font-bold uppercase tracking-widest text-on-surface-variant">
+            Konaklama
+        </h5>
+
+        <span id="hotelCount"
+              class="text-[11px] text-on-surface-variant">
+            0 sonuç
+        </span>
+    </div>
+
+    <div id="hotelsContainer"
+         class="space-y-3">
+
+        <div id="hotelPlaceholder"
+             class="p-4 bg-surface rounded-2xl border border-outline-variant/20">
+
+            <p class="text-[12px] text-on-surface-variant">
+                Henüz otel önerisi alınmadı.
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+----------------------------------------------------------------------------------------------------------
+
+const hotelsContainer = document.getElementById("hotelsContainer");
+const hotelCount = document.getElementById("hotelCount");
+
+
+----------------------------------------------------------------------------------------------------------
+
+function updateHotels(hotelResult) {
+
+    if (!hotelResult ||
+        !Array.isArray(hotelResult.hotels) ||
+        hotelResult.hotels.length === 0) {
+
+        return;
+    }
+
+    hotelsContainer.innerHTML = "";
+
+    hotelCount.textContent =
+        `${hotelResult.hotels.length} sonuç`;
+
+    hotelResult.hotels.forEach(function (hotel) {
+
+        const hotelCard =
+            document.createElement("a");
+
+        hotelCard.className =
+            "block bg-white border border-outline-variant/30 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow";
+
+        if (hotel.googleMapsUrl) {
+            hotelCard.href = hotel.googleMapsUrl;
+            hotelCard.target = "_blank";
+            hotelCard.rel = "noopener noreferrer";
+        }
+
+        const image =
+            document.createElement("div");
+
+        image.className =
+            "h-32 bg-cover bg-center";
+
+        image.style.backgroundImage =
+            hotel.photoUrl
+                ? `url('${hotel.photoUrl}')`
+                : "linear-gradient(to right,#ececec,#d9d9d9)";
+
+        const content =
+            document.createElement("div");
+
+        content.className = "p-4";
+
+        content.innerHTML = `
+            <div class="flex justify-between items-start mb-1">
+
+                <h6 class="font-bold text-on-surface">
+                    ${hotel.name}
+                </h6>
+
+                <div class="flex items-center text-primary text-[12px] font-bold">
+
+                    <span class="material-symbols-outlined text-sm mr-0.5"
+                          style="font-variation-settings:'FILL' 1;">
+                        star
+                    </span>
+
+                    ${hotel.rating > 0 ? hotel.rating.toFixed(1) : "-"}
+
+                </div>
+
+            </div>
+
+            <p class="text-[12px] text-on-surface-variant mb-2">
+                ${hotel.address}
+            </p>
+
+            <p class="text-[11px] text-on-surface-variant">
+                ${hotel.userRatingCount} değerlendirme
+            </p>
+        `;
+
+        hotelCard.appendChild(image);
+        hotelCard.appendChild(content);
+
+        hotelsContainer.appendChild(hotelCard);
+    });
+}
+
+
+----------------------------------------------------------------------------------------------------------
+
+if (agentResult.intent === "Hotel" &&
+    agentResult.hotel) {
+
+    updateHotels(
+        agentResult.hotel
+    );
+}
+
+
+----------------------------------------------------------------------------------------------------------
+
+var photoTasks = hotels.Select(async hotel =>
+{
+    if (string.IsNullOrWhiteSpace(hotel.PhotoName))
+    {
+        return;
+    }
+
+    try
+    {
+        hotel.PhotoUrl =
+            await _photoService.GetPhotoUrlAsync(
+                hotel.PhotoName,
+                1200);
+    }
+    catch
+    {
+        hotel.PhotoUrl = null;
+    }
+});
+
+await Task.WhenAll(photoTasks);
+
+
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------

@@ -1,0 +1,521 @@
+﻿----------------------------------------------------------------------------------------------------------
+
+using BtkTripMindAI.Dtos.ImageDtos;
+using System.Text.Json;
+
+namespace BtkTripMindAI.Services.ImageServices
+{
+    public class GooglePlacePhotoService
+        : IGooglePlacePhotoService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<GooglePlacePhotoService> _logger;
+
+        public GooglePlacePhotoService(
+            HttpClient httpClient,
+            IConfiguration configuration,
+            ILogger<GooglePlacePhotoService> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        public async Task<string?> GetPhotoUrlAsync(
+            string? photoName,
+            int maxWidth = 1200)
+        {
+            if (string.IsNullOrWhiteSpace(photoName))
+            {
+                return null;
+            }
+
+            string? apiKey =
+                _configuration["GooglePlaces:ApiKey"];
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException(
+                    "Google Places API anahtarı bulunamadı.");
+            }
+
+            if (maxWidth < 1)
+            {
+                maxWidth = 1200;
+            }
+
+            if (maxWidth > 4800)
+            {
+                maxWidth = 4800;
+            }
+
+            string encodedApiKey =
+                Uri.EscapeDataString(apiKey);
+
+            string requestUrl =
+                $"https://places.googleapis.com/v1/{photoName}/media" +
+                $"?maxWidthPx={maxWidth}" +
+                $"&skipHttpRedirect=true" +
+                $"&key={encodedApiKey}";
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await _httpClient.GetAsync(requestUrl);
+
+                string responseContent =
+                    await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning(
+                        "Google Place fotoğraf isteği başarısız. " +
+                        "StatusCode: {StatusCode}, Response: {Response}",
+                        response.StatusCode,
+                        responseContent);
+
+                    return null;
+                }
+
+                GooglePlacePhotoResponseDto? photoResponse =
+                    JsonSerializer.Deserialize
+                        <GooglePlacePhotoResponseDto>(
+                            responseContent,
+                            new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+
+                return photoResponse?.PhotoUri;
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Google Place fotoğraf cevabı çözümlenemedi.");
+
+                return null;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Google Place fotoğrafı alınırken hata oluştu.");
+
+                return null;
+            }
+        }
+    }
+}
+
+
+----------------------------------------------------------------------------------------------------------
+
+using System.Text.Json.Serialization;
+
+namespace BtkTripMindAI.Dtos.HotelDtos
+{
+    public class GooglePlacesHotelResponseDto
+    {
+        [JsonPropertyName("places")]
+        public List<GoogleHotelDto> Places { get; set; } = new();
+    }
+
+    public class GoogleHotelDto
+    {
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("displayName")]
+        public GoogleHotelDisplayNameDto? DisplayName { get; set; }
+
+        [JsonPropertyName("formattedAddress")]
+        public string? FormattedAddress { get; set; }
+
+        [JsonPropertyName("rating")]
+        public double Rating { get; set; }
+
+        [JsonPropertyName("userRatingCount")]
+        public int UserRatingCount { get; set; }
+
+        [JsonPropertyName("googleMapsUri")]
+        public string? GoogleMapsUri { get; set; }
+
+        [JsonPropertyName("websiteUri")]
+        public string? WebsiteUri { get; set; }
+
+        [JsonPropertyName("photos")]
+        public List<GoogleHotelPhotoDto> Photos { get; set; } = new();
+    }
+
+    public class GoogleHotelDisplayNameDto
+    {
+        [JsonPropertyName("text")]
+        public string? Text { get; set; }
+
+        [JsonPropertyName("languageCode")]
+        public string? LanguageCode { get; set; }
+    }
+
+    public class GoogleHotelPhotoDto
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+    }
+}
+
+
+----------------------------------------------------------------------------------------------------------
+
+Hotel Model
+
+public string PlaceId { get; set; } = string.Empty;
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Address { get; set; } = string.Empty;
+
+        public double Rating { get; set; }
+
+        public int UserRatingCount { get; set; }
+
+        public string? GoogleMapsUrl { get; set; }
+
+        public string? WebsiteUrl { get; set; }
+
+        public string? PhotoName { get; set; }
+
+        public string? PhotoUrl { get; set; }
+----------------------------------------------------------------------------------------------------------
+
+Hotel Result
+
+ public bool IsSuccess { get; set; }
+
+        public string? ErrorMessage { get; set; }
+
+        public string City { get; set; } = string.Empty;
+
+        public string Country { get; set; } = string.Empty;
+
+        public List<Hotel> Hotels { get; set; } = new();
+
+----------------------------------------------------------------------------------------------------------
+
+using BtkTripMindAI.Dtos.HotelDtos;
+using BtkTripMindAI.Models.HotelModels;
+using BtkTripMindAI.Services.ImageServices;
+using System.Text;
+using System.Text.Json;
+
+namespace BtkTripMindAI.Services.HotelServices
+{
+    public class GooglePlacesHotelService
+        : IHotelService
+    {
+        private const string SearchEndpoint =
+            "https://places.googleapis.com/v1/places:searchText";
+
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly IGooglePlacePhotoService _photoService;
+        private readonly ILogger<GooglePlacesHotelService> _logger;
+
+        public GooglePlacesHotelService(
+            HttpClient httpClient,
+            IConfiguration configuration,
+            IGooglePlacePhotoService photoService,
+            ILogger<GooglePlacesHotelService> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _photoService = photoService;
+            _logger = logger;
+        }
+
+        public async Task<HotelResult> GetHotelsAsync(
+            string city,
+            string? country)
+        {
+            if (string.IsNullOrWhiteSpace(city))
+            {
+                return new HotelResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage =
+                        "Otel aramak için şehir bilgisi gereklidir."
+                };
+            }
+
+            string? apiKey =
+                _configuration["GooglePlaces:ApiKey"];
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException(
+                    "Google Places API anahtarı bulunamadı.");
+            }
+
+            string destination =
+                string.IsNullOrWhiteSpace(country)
+                    ? city.Trim()
+                    : $"{city.Trim()}, {country.Trim()}";
+
+            var requestBody = new
+            {
+                textQuery = $"{destination} hotels",
+                pageSize = 5,
+                languageCode = "tr"
+            };
+
+            string requestJson =
+                JsonSerializer.Serialize(requestBody);
+
+            using var request =
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    SearchEndpoint);
+
+            request.Content =
+                new StringContent(
+                    requestJson,
+                    Encoding.UTF8,
+                    "application/json");
+
+            request.Headers.Add(
+                "X-Goog-Api-Key",
+                apiKey);
+
+            request.Headers.Add(
+                "X-Goog-FieldMask",
+                string.Join(",",
+                    "places.id",
+                    "places.displayName",
+                    "places.formattedAddress",
+                    "places.rating",
+                    "places.userRatingCount",
+                    "places.googleMapsUri",
+                    "places.websiteUri",
+                    "places.photos"));
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await _httpClient.SendAsync(request);
+
+                string responseContent =
+                    await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError(
+                        "Google Places otel isteği başarısız. " +
+                        "StatusCode: {StatusCode}, City: {City}, Response: {Response}",
+                        response.StatusCode,
+                        city,
+                        responseContent);
+
+                    return new HotelResult
+                    {
+                        IsSuccess = false,
+                        City = city,
+                        Country = country ?? string.Empty,
+                        ErrorMessage =
+                            $"{city} için otel bilgileri alınamadı."
+                    };
+                }
+
+                GooglePlacesHotelResponseDto? apiResponse =
+                    JsonSerializer.Deserialize
+                        <GooglePlacesHotelResponseDto>(
+                            responseContent,
+                            new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+
+                if (apiResponse is null ||
+                    apiResponse.Places.Count == 0)
+                {
+                    return new HotelResult
+                    {
+                        IsSuccess = false,
+                        City = city,
+                        Country = country ?? string.Empty,
+                        ErrorMessage =
+                            $"{city} için otel bulunamadı."
+                    };
+                }
+
+                List<Hotel> hotels =
+                    apiResponse.Places
+                        .Take(5)
+                        .Select(place => new Hotel
+                        {
+                            PlaceId =
+                                place.Id ?? string.Empty,
+
+                            Name =
+                                place.DisplayName?.Text
+                                ?? "Otel",
+
+                            Address =
+                                place.FormattedAddress
+                                ?? string.Empty,
+
+                            Rating =
+                                place.Rating,
+
+                            UserRatingCount =
+                                place.UserRatingCount,
+
+                            GoogleMapsUrl =
+                                place.GoogleMapsUri,
+
+                            WebsiteUrl =
+                                place.WebsiteUri,
+
+                            PhotoName =
+                                place.Photos
+                                    .FirstOrDefault()?
+                                    .Name
+                        })
+                        .ToList();
+
+                foreach (Hotel hotel in hotels)
+                {
+                    hotel.PhotoUrl =
+                        await _photoService.GetPhotoUrlAsync(
+                            hotel.PhotoName,
+                            1200);
+                }
+
+                return new HotelResult
+                {
+                    IsSuccess = true,
+                    City = city,
+                    Country = country ?? string.Empty,
+                    Hotels = hotels
+                };
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Google Places otel JSON cevabı çözümlenemedi. City: {City}",
+                    city);
+
+                return new HotelResult
+                {
+                    IsSuccess = false,
+                    City = city,
+                    Country = country ?? string.Empty,
+                    ErrorMessage =
+                        "Otel verileri işlenemedi."
+                };
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Otel bilgileri alınırken hata oluştu. City: {City}",
+                    city);
+
+                return new HotelResult
+                {
+                    IsSuccess = false,
+                    City = city,
+                    Country = country ?? string.Empty,
+                    ErrorMessage =
+                        "Otel bilgileri alınırken bir hata oluştu."
+                };
+            }
+        }
+    }
+}
+
+
+----------------------------------------------------------------------------------------------------------
+
+if (intent == TravelIntent.Hotel)
+{
+    if (string.IsNullOrWhiteSpace(city))
+    {
+        return new AgentResult
+        {
+            IsSuccess = true,
+            Intent = TravelIntent.Hotel,
+            Message =
+                "Otel önerileri hazırlayabilirim. " +
+                "Hangi şehirde otel arıyorsunuz?"
+        };
+    }
+
+    var hotelResult =
+        await _hotelService.GetHotelsAsync(
+            city,
+            country);
+
+    if (!hotelResult.IsSuccess)
+    {
+        return new AgentResult
+        {
+            IsSuccess = false,
+            Intent = TravelIntent.Hotel,
+            ToolName =
+                nameof(GooglePlacesHotelService),
+            City = city,
+            Country = country,
+            Hotel = hotelResult,
+            Message =
+                hotelResult.ErrorMessage
+                ?? "Otel bilgileri alınamadı."
+        };
+    }
+
+    Hotel? firstHotel =
+        hotelResult.Hotels.FirstOrDefault();
+
+    return new AgentResult
+    {
+        IsSuccess = true,
+        Intent = TravelIntent.Hotel,
+        ToolName =
+            nameof(GooglePlacesHotelService),
+        City = hotelResult.City,
+        Country = hotelResult.Country,
+        Hotel = hotelResult,
+
+        CoverImageUrl =
+            firstHotel?.PhotoUrl,
+
+        Message =
+            $"{hotelResult.City} için " +
+            $"{hotelResult.Hotels.Count} otel bulundu."
+    };
+}
+
+
+----------------------------------------------------------------------------------------------------------
+
+Hotel? firstHotel = hotels.FirstOrDefault();
+
+if (firstHotel is not null &&
+    !string.IsNullOrWhiteSpace(firstHotel.PhotoName))
+{
+    firstHotel.PhotoUrl =
+        await _photoService.GetPhotoUrlAsync(
+            firstHotel.PhotoName,
+            1200);
+}
+
+
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------

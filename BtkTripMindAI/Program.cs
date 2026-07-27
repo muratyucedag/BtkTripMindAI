@@ -1,10 +1,25 @@
 using BtkTripMindAI.Agent.Extractors;
 using BtkTripMindAI.Agent.Intents;
 using BtkTripMindAI.Services.AgentServices;
+using BtkTripMindAI.Services.BudgetServices;
+using BtkTripMindAI.Services.HotelServices;
+using BtkTripMindAI.Services.ImageServices;
+using BtkTripMindAI.Services.RestaurantServices;
+using BtkTripMindAI.Services.RouteServices;
+using BtkTripMindAI.Services.TravelDetailServices;
+using BtkTripMindAI.Services.WeatherServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IAgentService, AgentService>();
+builder.Services.AddHttpClient<IWeatherService, RapidApiWeatherService>();
+builder.Services.AddHttpClient<ICityImageService, PexelsCityImageService>();
+builder.Services.AddHttpClient<IRouteService, RouteService>();
+builder.Services.AddHttpClient<IRestaurantService, RestaurantService>();
+builder.Services.AddHttpClient<IHotelService, HotelService>();
+builder.Services.AddHttpClient<IGooglePlacePhotoService, GooglePlacePhotoService>();
+builder.Services.AddScoped<IBudgetService, BudgetService>();
+builder.Services.AddScoped<ITravelDetailExtractor, OpenAITravelDetailExtractor>();
 
 builder.Services.AddHttpClient<IIntentDetector, OpenAIIntentDetector>(client =>
     {

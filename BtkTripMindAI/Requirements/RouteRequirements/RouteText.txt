@@ -1,0 +1,443 @@
+﻿using BtkTripMindAI.Dtos.RouteDtos;
+using BtkTripMindAI.Models.RouteModels;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+
+namespace BtkTripMindAI.Services.RouteServices
+{
+    public class OpenAIRouteService : IRouteService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<OpenAIRouteService> _logger;
+
+        public OpenAIRouteService(
+            HttpClient httpClient,
+            IConfiguration configuration,
+            ILogger<OpenAIRouteService> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        public async Task<RouteResult> CreateRouteAsync(
+            string city,
+            string? country,
+            int dayCount)
+        {
+            if (string.IsNullOrWhiteSpace(city))
+            {
+                return new RouteResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage =
+                        "Rota oluşturmak için şehir bilgisi gereklidir."
+                };
+            }
+
+            if (dayCount <= 0)
+            {
+                dayCount = 3;
+            }
+
+            string? apiKey =
+                _configuration["OpenAI:ApiKey"];
+
+            string model =
+                _configuration["OpenAI:Model"]
+                ?? "gpt-5-mini";
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException(
+                    "OpenAI API anahtarı bulunamadı.");
+            }
+
+            string destination =
+                string.IsNullOrWhiteSpace(country)
+                    ? city
+                    : $"{city}, {country}";
+
+            var requestBody = new
+            {
+                model,
+
+                instructions =
+                    $"""
+                    Sen BtkTripMindAI isimli bir seyahat uygulamasında
+                    günlük seyahat rotaları hazırlayan bir asistansın.
+
+                    Kullanıcı için belirtilen şehre özel,
+                    gerçekçi ve uygulanabilir bir gezi rotası oluştur.
+
+                    Hedef şehir:
+                    {destination}
+
+                    Gün sayısı:
+                    {dayCount}
+
+                    Kurallar:
+                    - Tam olarak {dayCount} günlük rota oluştur.
+                    - Her gün için kısa bir başlık yaz.
+                    - Her gün için tek paragraf açıklama yaz.
+                    - Açıklamada gezilecek önemli yerleri belirt.
+                    - Aynı yeri farklı günlerde tekrar etme.
+                    - Yerler mümkün olduğunca birbirine yakın ve
+                      günlük olarak uygulanabilir olsun.
+                    - Genel ve belirsiz ifadeler kullanma.
+                    - Yanlış şehirde bulunan yerleri ekleme.
+                    - Cevabı Türkçe hazırla.
+                    - Açıklama dışında hiçbir metin yazma.
+                    - Markdown kullanma.
+                    - Sonuç yalnızca geçerli JSON olmalıdır.
+
+                    JSON biçimi:
+
+                    {{
+                      "city": "{city}",
+                      "country": "{country ?? string.Empty}",
+                      "dayCount": {dayCount},
+                      "days": [
+                        {{
+                          "dayNumber": 1,
+                          "title": "Gün başlığı",
+                          "description": "Günlük rota açıklaması"
+                        }}
+                      ]
+                    }}
+                    """,
+
+                input =
+                    $"{destination} için {dayCount} günlük rota oluştur."
+            };
+
+            string requestJson =
+                JsonSerializer.Serialize(requestBody);
+
+            using var request =
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    "https://api.openai.com/v1/responses");
+
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    apiKey);
+
+            request.Content =
+                new StringContent(
+                    requestJson,
+                    Encoding.UTF8,
+                    "application/json");
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await _httpClient.SendAsync(request);
+
+                string responseContent =
+                    await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError(
+                        "OpenAI rota isteği başarısız. " +
+                        "StatusCode: {StatusCode}, Response: {Response}",
+                        response.StatusCode,
+                        responseContent);
+
+                    return new RouteResult
+                    {
+                        IsSuccess = false,
+                        City = city,
+                        Country = country ?? string.Empty,
+                        DayCount = dayCount,
+                        ErrorMessage =
+                            "Seyahat rotası oluşturulamadı."
+                    };
+                }
+
+                string? outputText =
+                    GetOutputText(responseContent);
+
+                if (string.IsNullOrWhiteSpace(outputText))
+                {
+                    return new RouteResult
+                    {
+                        IsSuccess = false,
+                        City = city,
+                        Country = country ?? string.Empty,
+                        DayCount = dayCount,
+                        ErrorMessage =
+                            "OpenAI servisinden rota verisi alınamadı."
+                    };
+                }
+
+                OpenAIRouteResponseDto? routeResponse =
+                    JsonSerializer.Deserialize<OpenAIRouteResponseDto>(
+                        outputText,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                if (routeResponse is null ||
+                    routeResponse.Days.Count == 0)
+                {
+                    return new RouteResult
+                    {
+                        IsSuccess = false,
+                        City = city,
+                        Country = country ?? string.Empty,
+                        DayCount = dayCount,
+                        ErrorMessage =
+                            "Geçerli rota verisi oluşturulamadı."
+                    };
+                }
+
+                var routeDays =
+                    routeResponse.Days
+                        .Take(dayCount)
+                        .Select(day => new RouteDay
+                        {
+                            DayNumber = day.DayNumber,
+
+                            Title =
+                                day.Title
+                                ?? string.Empty,
+
+                            Description =
+                                day.Description
+                                ?? string.Empty
+                        })
+                        .ToList();
+
+                return new RouteResult
+                {
+                    IsSuccess = true,
+
+                    City =
+                        routeResponse.City
+                        ?? city,
+
+                    Country =
+                        routeResponse.Country
+                        ?? country
+                        ?? string.Empty,
+
+                    DayCount = routeDays.Count,
+
+                    Days = routeDays
+                };
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogError(
+                    "OpenAI rota isteği zaman aşımına uğradı. City: {City}",
+                    city);
+
+                return new RouteResult
+                {
+                    IsSuccess = false,
+                    City = city,
+                    Country = country ?? string.Empty,
+                    DayCount = dayCount,
+                    ErrorMessage =
+                        "Rota oluşturma işlemi zaman aşımına uğradı."
+                };
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "OpenAI rota JSON cevabı ayrıştırılamadı. City: {City}",
+                    city);
+
+                return new RouteResult
+                {
+                    IsSuccess = false,
+                    City = city,
+                    Country = country ?? string.Empty,
+                    DayCount = dayCount,
+                    ErrorMessage =
+                        "Rota verileri işlenemedi."
+                };
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Rota oluşturulurken beklenmeyen hata oluştu. City: {City}",
+                    city);
+
+                return new RouteResult
+                {
+                    IsSuccess = false,
+                    City = city,
+                    Country = country ?? string.Empty,
+                    DayCount = dayCount,
+                    ErrorMessage =
+                        "Rota oluşturulurken bir hata oluştu."
+                };
+            }
+        }
+
+        private static string? GetOutputText(
+            string responseContent)
+        {
+            using JsonDocument document =
+                JsonDocument.Parse(responseContent);
+
+            JsonElement root =
+                document.RootElement;
+
+            if (root.TryGetProperty(
+                "output_text",
+                out JsonElement outputTextElement))
+            {
+                return outputTextElement.GetString();
+            }
+
+            if (!root.TryGetProperty(
+                    "output",
+                    out JsonElement outputElement) ||
+                outputElement.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            foreach (JsonElement outputItem
+                     in outputElement.EnumerateArray())
+            {
+                if (!outputItem.TryGetProperty(
+                        "content",
+                        out JsonElement contentElement) ||
+                    contentElement.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (JsonElement contentItem
+                         in contentElement.EnumerateArray())
+                {
+                    if (contentItem.TryGetProperty(
+                        "text",
+                        out JsonElement textElement))
+                    {
+                        return textElement.GetString();
+                    }
+                }
+            }
+
+            return null;
+        }
+    }
+}
+
+
+---------------------------------------------------------------------------------------------
+
+instructions =
+    $$"""
+    Sen BtkTripMindAI isimli bir seyahat uygulamasında
+    günlük seyahat rotaları hazırlayan bir asistansın.
+
+    Kullanıcı için belirtilen şehre özel,
+    gerçekçi ve uygulanabilir bir gezi rotası oluştur.
+
+    Hedef şehir:
+    {{destination}}
+
+    Gün sayısı:
+    {{dayCount}}
+
+    Kurallar:
+    - Tam olarak {{dayCount}} günlük rota oluştur.
+    - Her gün için kısa bir başlık yaz.
+    - Her gün için tek paragraf açıklama yaz.
+    - Açıklamada gezilecek önemli yerleri belirt.
+    - Aynı yeri farklı günlerde tekrar etme.
+    - Yerler mümkün olduğunca birbirine yakın ve
+      günlük olarak uygulanabilir olsun.
+    - Genel ve belirsiz ifadeler kullanma.
+    - Yanlış şehirde bulunan yerleri ekleme.
+    - Cevabı Türkçe hazırla.
+    - Açıklama dışında hiçbir metin yazma.
+    - Markdown kullanma.
+    - Sonuç yalnızca geçerli JSON olmalıdır.
+
+    JSON biçimi:
+
+    {
+      "city": "{{city}}",
+      "country": "{{country ?? string.Empty}}",
+      "dayCount": {{dayCount}},
+      "days": [
+        {
+          "dayNumber": 1,
+          "title": "Gün başlığı",
+          "description": "Günlük rota açıklaması"
+        }
+      ]
+    }
+    """,
+
+---------------------------------------------------------------------------------------------------
+
+if (intent == TravelIntent.Route)
+{
+    if (string.IsNullOrWhiteSpace(city))
+    {
+        return new AgentResult
+        {
+            IsSuccess = true,
+            Intent = TravelIntent.Route,
+            City = null,
+            Country = null,
+            Message =
+                "Seyahat rotası oluşturabilirim. " +
+                "Hangi şehir için rota hazırlamamı istersiniz?"
+        };
+    }
+
+    const int dayCount = 3;
+
+    var routeResult =
+        await _routeService.CreateRouteAsync(
+            city,
+            country,
+            dayCount);
+
+    if (!routeResult.IsSuccess)
+    {
+        return new AgentResult
+        {
+            IsSuccess = false,
+            Intent = TravelIntent.Route,
+            ToolName = nameof(RouteService),
+            City = city,
+            Country = country,
+            Route = routeResult,
+            Message =
+                routeResult.ErrorMessage
+                ?? "Seyahat rotası oluşturulamadı."
+        };
+    }
+
+    return new AgentResult
+    {
+        IsSuccess = true,
+        Intent = TravelIntent.Route,
+        ToolName = nameof(RouteService),
+        City = routeResult.City,
+        Country = routeResult.Country,
+        Route = routeResult,
+        Message =
+            $"{routeResult.City} için " +
+            $"{routeResult.DayCount} günlük seyahat rotası hazırlandı."
+    };
+}
+
+

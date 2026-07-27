@@ -1,0 +1,100 @@
+﻿using BtkTripMindAI.Dtos.ImageDtos;
+using BtkTripMindAI.Models.ImageModels;
+using System.Net.Http.Headers;
+using System.Text.Json;
+
+namespace BtkTripMindAI.Services.ImageServices
+{
+    public class PexelsCityImageService : ICityImageService
+    {
+        private const string PexelsApiKey = "Z9FzMSVB3nJNrFabMBBUo8nKJDcFVNorGGPxBYCbruwN1siZ1qBSxjtY";
+
+        private readonly HttpClient _httpClient;
+        private readonly ILogger<PexelsCityImageService> _logger;
+        public PexelsCityImageService(HttpClient httpClient, ILogger<PexelsCityImageService> logger)
+        {
+            _httpClient = httpClient;
+            _logger = logger;
+        }
+
+        public async Task<CityImageResult> GetCityImageAsync(string city, string? country = null)
+        {
+            if (string.IsNullOrWhiteSpace(city))
+            {
+                return new CityImageResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Şehir adı bulunamadı."
+                };
+            }
+
+            try
+            {
+                var searchText = string.IsNullOrWhiteSpace(country) ? $"{city} city" : $"{city} {country} city";
+
+                var encodedQuery = Uri.EscapeDataString(searchText);
+
+                var requestUrl =
+                    $"https://api.pexels.com/v1/search" +
+                    $"?query={encodedQuery}" +
+                    $"&orientation=landscape" +
+                    $"&size=large" +
+                    $"&per_page=1";
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+
+                request.Headers.Authorization = new AuthenticationHeaderValue(PexelsApiKey);
+
+                using var response = await _httpClient.SendAsync(request);
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Pexels isteği başarısız. City: {City}, Status: {Status}", city, response.StatusCode);
+
+                    return new CityImageResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "Şehir görseli alınamadı."
+                    };
+                }
+
+                var apiResponse = JsonSerializer.Deserialize<PexelsImageResponseDto>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                var photo = apiResponse?.Photos.FirstOrDefault();
+
+                var imageUrl = photo?.Source?.Landscape ?? photo?.Source?.Large2X;
+
+                if (string.IsNullOrWhiteSpace(imageUrl))
+                {
+                    return new CityImageResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = $"{city} için uygun görsel bulunamadı."
+                    };
+                }
+
+                return new CityImageResult
+                {
+                    IsSuccess = true,
+                    ImageUrl = imageUrl,
+                    Photographer = photo?.Photographer
+                };
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Şehir görseli alınırken hata oluştu. City: {City}", city);
+
+                return new CityImageResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Şehir görseli alınırken hata oluştu."
+                };
+            }
+        }
+    }
+}

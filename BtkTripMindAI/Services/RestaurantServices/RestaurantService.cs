@@ -1,0 +1,169 @@
+﻿using BtkTripMindAI.Dtos.RestaurantDtos;
+using BtkTripMindAI.Models.RestaurantModels;
+using System.Text;
+using System.Text.Json;
+
+namespace BtkTripMindAI.Services.RestaurantServices
+{
+    public class RestaurantService : IRestaurantService
+    {
+        private const string SearchEndpoint = "https://places.googleapis.com/v1/places:searchText";
+
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<RestaurantService> _logger;
+
+        public RestaurantService(HttpClient httpClient, IConfiguration configuration, ILogger<RestaurantService> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        public async Task<RestaurantResult> GetRestaurantsAsync(string city, string? country)
+        {
+            if (string.IsNullOrWhiteSpace(city))
+            {
+                return new RestaurantResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Restoran aramak için şehir bilgisi gereklidir."
+                };
+            }
+
+            string? apiKey = _configuration["GooglePlaces:ApiKey"];
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException("Google Places API anahtarı bulunamadı.");
+            }
+
+            string destination = string.IsNullOrWhiteSpace(country) ? city.Trim() : $"{city.Trim()}, {country.Trim()}";
+
+            var requestBody = new
+            {
+                textQuery = $"{destination} restoranları",
+                includedType = "restaurant",
+                strictTypeFiltering = true,
+                pageSize = 5,
+                languageCode = "tr",
+                regionCode = "TR"
+            };
+
+            string requestJson = JsonSerializer.Serialize(requestBody);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, SearchEndpoint);
+
+            request.Content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+            request.Headers.Add("X-Goog-Api-Key", apiKey);
+
+            request.Headers.Add(
+                "X-Goog-FieldMask",
+                string.Join(",",
+                    "places.id",
+                    "places.displayName",
+                    "places.formattedAddress",
+                    "places.rating",
+                    "places.userRatingCount",
+                    "places.priceLevel",
+                    "places.googleMapsUri",
+                    "places.photos"));
+
+            try
+            {
+                using HttpResponseMessage response = await _httpClient.SendAsync(request);
+
+                string responseContent = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Google Places restoran isteği başarısız. " + "StatusCode: {StatusCode}, City: {City}, Response: {Response}", response.StatusCode, city, responseContent);
+
+                    return new RestaurantResult
+                    {
+                        IsSuccess = false,
+                        City = city,
+                        Country = country ?? string.Empty,
+                        ErrorMessage = $"{city} için restoran bilgileri alınamadı."
+                    };
+                }
+
+                GooglePlacesTextSearchResponseDto? apiResponse = JsonSerializer.Deserialize<GooglePlacesTextSearchResponseDto>(responseContent,
+                            new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+
+                if (apiResponse is null || apiResponse.Places.Count == 0)
+                {
+                    return new RestaurantResult
+                    {
+                        IsSuccess = false,
+                        City = city,
+                        Country = country ?? string.Empty,
+                        ErrorMessage = $"{city} için restoran bulunamadı."
+                    };
+                }
+
+                List<Restaurant> restaurants = apiResponse.Places.Take(5)
+                        .Select(place => new Restaurant
+                        {
+                            PlaceId = place.Id ?? string.Empty,
+                            Name = place.DisplayName?.Text ?? "Restoran",
+                            Address = place.FormattedAddress ?? string.Empty,
+                            Rating = place.Rating,
+                            UserRatingCount = place.UserRatingCount,
+                            PriceLevel = FormatPriceLevel(place.PriceLevel),
+                            GoogleMapsUrl = place.GoogleMapsUri,
+                            PhotoName = place.Photos.FirstOrDefault()?.Name
+                        }).ToList();
+
+                return new RestaurantResult
+                {
+                    IsSuccess = true,
+                    City = city,
+                    Country = country ?? string.Empty,
+                    Restaurants = restaurants
+                };
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(exception, "Google Places restoran cevabı JSON formatına çevrilemedi. City: {City}", city);
+
+                return new RestaurantResult
+                {
+                    IsSuccess = false,
+                    City = city,
+                    Country = country ?? string.Empty,
+                    ErrorMessage = "Restoran verileri işlenemedi."
+                };
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Restoran bilgileri alınırken hata oluştu. City: {City}", city);
+
+                return new RestaurantResult
+                {
+                    IsSuccess = false,
+                    City = city,
+                    Country = country ?? string.Empty,
+                    ErrorMessage = "Restoran bilgileri alınırken bir hata oluştu."
+                };
+            }
+        }
+
+        private static string FormatPriceLevel(string? priceLevel)
+        {
+            return priceLevel switch
+            {
+                "PRICE_LEVEL_FREE" => "Ücretsiz",
+                "PRICE_LEVEL_INEXPENSIVE" => "₺",
+                "PRICE_LEVEL_MODERATE" => "₺₺",
+                "PRICE_LEVEL_EXPENSIVE" => "₺₺₺",
+                "PRICE_LEVEL_VERY_EXPENSIVE" => "₺₺₺₺",
+                _ => "Fiyat bilgisi yok"
+            };
+        }
+    }
+}

@@ -1,0 +1,184 @@
+﻿<!-- 2. Chat Section (Center, 40%) -->
+<main class="w-[40%] h-screen flex flex-col bg-surface-container-low/30 border-r border-outline-variant/30">
+
+    <!-- Chat Header -->
+    <header class="px-8 py-6 flex items-center justify-between glass-panel sticky top-0 z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
+
+            <div>
+                <h2 class="font-headline-md text-primary">
+                    Seyahat Asistanınız
+                </h2>
+
+                <p class="text-[11px] text-on-surface-variant">
+                    Çevrimiçi
+                </p>
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="button"
+                    class="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+                <span class="material-symbols-outlined"
+                      data-icon="notifications">
+                    notifications
+                </span>
+            </button>
+
+            <button type="button"
+                    class="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+                <span class="material-symbols-outlined"
+                      data-icon="help_outline">
+                    help_outline
+                </span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Messages Area -->
+    <div id="chatMessages"
+         class="flex-1 overflow-y-auto px-8 py-6 chat-scroll flex flex-col gap-8">
+
+        <!-- AI Message -->
+        <div class="flex gap-4 items-start max-w-[85%]">
+            <div class="w-10 h-10 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white">
+                <span class="material-symbols-outlined"
+                      data-icon="smart_toy">
+                    smart_toy
+                </span>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl rounded-tl-none shadow-sm border border-outline-variant/20">
+                <p class="text-body-md text-on-surface">
+                    Merhaba Murat! Bugün senin için nasıl bir seyahat planlayalım?
+                </p>
+            </div>
+        </div>
+
+        <!-- User Message -->
+        <div class="flex gap-4 items-start justify-end self-end max-w-[85%]">
+            <div class="bg-primary-container/40 p-5 rounded-2xl rounded-tr-none border border-primary/10">
+                <p class="text-body-md text-on-primary-container">
+                    Eylül ayında eşim ve çocuğumla 3 günlük Fransa Nice seyahati
+                    planlamak istiyorum.
+                </p>
+            </div>
+
+            <div class="w-10 h-10 rounded-full bg-secondary-fixed flex-shrink-0 overflow-hidden">
+                <img class="w-full h-full object-cover"
+                     alt="Kullanıcı profil fotoğrafı"
+                     src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJ9m_0uCYjopEIK8G1vB_YYt2Unk0rfggH8Z5aCNyHXvyjzmI-XpQRnUUzbBnCyAD_dh1IsIxjA73JSkT9UG44QbDzwMko5A04jLsMefCKVId_ITvvlJS-eTmZNJvG-wkXqO0rAVF3VPpMOV22X2YHpwMK1nE_NFkEIaspYOpRwG1OQLQrNRUHp_7e4-O1bqsIxwTGa5Yj8L6Mape0_bhu9j4gBGOXaj3FmScFwbCC_g5WFJYoHuHgPA" />
+            </div>
+        </div>
+
+        <!-- AI Thinking -->
+        <div id="aiThinking"
+             class="hidden flex gap-4 items-start max-w-[85%]">
+
+            <div class="w-10 h-10 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white">
+                <span class="material-symbols-outlined"
+                      data-icon="smart_toy">
+                    smart_toy
+                </span>
+            </div>
+
+            <div class="bg-white/80 p-4 rounded-2xl rounded-tl-none flex items-center gap-3">
+                <div class="flex gap-1">
+                    <div class="w-2 h-2 bg-primary/40 rounded-full animate-bounce"></div>
+
+                    <div class="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+
+                    <div class="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                </div>
+
+                <p id="thinkingText"
+                   class="text-label-md text-on-surface-variant italic">
+                    Asistanınız talebinizi değerlendiriyor...
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Area -->
+    <footer class="p-8 space-y-4">
+
+        <!-- Quick Prompts -->
+        <div class="flex flex-wrap gap-2">
+
+            <button type="button"
+                    class="quick-prompt px-4 py-2 bg-white border border-outline-variant/30 rounded-full text-label-md text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-all">
+                Bir şehir öner
+            </button>
+
+            <button type="button"
+                    class="quick-prompt px-4 py-2 bg-white border border-outline-variant/30 rounded-full text-label-md text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-all">
+                3 günlük rota oluştur
+            </button>
+
+            <button type="button"
+                    class="quick-prompt px-4 py-2 bg-white border border-outline-variant/30 rounded-full text-label-md text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-all">
+                Hava durumunu kontrol et
+            </button>
+
+            <button type="button"
+                    class="quick-prompt px-4 py-2 bg-white border border-outline-variant/30 rounded-full text-label-md text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-all">
+                Otel listele
+            </button>
+
+            <button type="button"
+                    class="quick-prompt px-4 py-2 bg-white border border-outline-variant/30 rounded-full text-label-md text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-all">
+                Restoran önerileri
+            </button>
+        </div>
+
+        <!-- Message Input -->
+        <div class="relative group">
+
+            <div class="absolute inset-y-0 left-4 flex items-center gap-2 text-outline">
+
+                <button type="button"
+                        class="hover:text-primary transition-colors"
+                        title="Dosya ekle">
+                    <span class="material-symbols-outlined"
+                          data-icon="attach_file">
+                        attach_file
+                    </span>
+                </button>
+
+                <button type="button"
+                        class="hover:text-primary transition-colors"
+                        title="Konum ekle">
+                    <span class="material-symbols-outlined"
+                          data-icon="location_on">
+                        location_on
+                    </span>
+                </button>
+
+                <button type="button"
+                        class="hover:text-primary transition-colors"
+                        title="Tarih seç">
+                    <span class="material-symbols-outlined"
+                          data-icon="calendar_month">
+                        calendar_month
+                    </span>
+                </button>
+            </div>
+
+            <input id="messageInput"
+                   class="w-full bg-white border-none py-4 pl-32 pr-16 rounded-2xl shadow-lg ring-1 ring-outline-variant/20 focus:ring-2 focus:ring-primary text-body-md transition-all"
+                   placeholder="Asistanınıza sorun..."
+                   type="text"
+                   autocomplete="off" />
+
+            <button id="sendMessageButton"
+                    type="button"
+                    class="absolute inset-y-2 right-2 px-4 bg-primary text-white rounded-xl flex items-center justify-center hover:bg-surface-tint transition-colors">
+                <span class="material-symbols-outlined"
+                      data-icon="send">
+                    send
+                </span>
+            </button>
+        </div>
+    </footer>
+</main>

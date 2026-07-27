@@ -1,0 +1,266 @@
+﻿using BtkTripMindAI.Models.TravelModels;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+
+namespace BtkTripMindAI.Services.TravelDetailServices
+{
+    public class OpenAITravelDetailExtractor
+        : ITravelDetailExtractor
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<OpenAITravelDetailExtractor> _logger;
+
+        public OpenAITravelDetailExtractor(
+            HttpClient httpClient,
+            IConfiguration configuration,
+            ILogger<OpenAITravelDetailExtractor> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        public async Task<TravelRequestDetails> ExtractAsync(
+            string userMessage)
+        {
+            if (string.IsNullOrWhiteSpace(userMessage))
+            {
+                return CreateDefaultResult();
+            }
+
+            string? apiKey =
+                _configuration["OpenAI:ApiKey"];
+
+            string model =
+                _configuration["OpenAI:Model"]
+                ?? "gpt-5-mini";
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException(
+                    "OpenAI API anahtarı bulunamadı.");
+            }
+
+            var requestBody = new
+            {
+                model,
+
+                instructions =
+                    """
+                    Sen bir seyahat uygulamasında kullanıcı mesajından
+                    seyahat detaylarını çıkaran veri ayrıştırma aracısın.
+
+                    Kullanıcının mesajından aşağıdaki bilgileri çıkar:
+
+                    - Hedef şehir
+                    - Hedef ülke
+                    - Gün sayısı
+                    - Yetişkin sayısı
+                    - Çocuk sayısı
+                    - Bütçe seviyesi
+
+                    Kurallar:
+
+                    - Sonuç yalnızca geçerli JSON olmalıdır.
+                    - Açıklama veya markdown ekleme.
+                    - Kullanıcı gün sayısı belirtmediyse 3 döndür.
+                    - Kullanıcı yetişkin sayısı belirtmediyse 1 döndür.
+                    - Kullanıcı çocuk belirtmediyse 0 döndür.
+                    - "Eşimle" veya "eşim ve ben" ifadeleri 2 yetişkin demektir.
+                    - "Ailemle" ifadesinde açık sayı yoksa 2 yetişkin kabul et.
+                    - Şehir belirtilmemişse city null olmalıdır.
+                    - Ülke belirtilmemiş ancak şehirden güvenilir şekilde
+                      anlaşılabiliyorsa ülkeyi İngilizce adıyla döndür.
+                    - Bütçe seviyesi yalnızca şu değerlerden biri olmalıdır:
+                      Economy, Medium, Luxury.
+                    - Ekonomik, uygun fiyatlı veya düşük bütçe ifadeleri
+                      Economy olarak döndürülmelidir.
+                    - Orta segment veya standart ifadeleri
+                      Medium olarak döndürülmelidir.
+                    - Lüks, premium veya yüksek bütçe ifadeleri
+                      Luxury olarak döndürülmelidir.
+                    - Bütçe seviyesi belirtilmemişse Medium döndür.
+
+                    JSON biçimi:
+
+                    {
+                      "city": "Rome",
+                      "country": "Italy",
+                      "dayCount": 4,
+                      "adultCount": 2,
+                      "childCount": 1,
+                      "budgetLevel": "Medium"
+                    }
+                    """,
+
+                input = userMessage
+            };
+
+            string json =
+                JsonSerializer.Serialize(requestBody);
+
+            using var request =
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    "https://api.openai.com/v1/responses");
+
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    apiKey);
+
+            request.Content =
+                new StringContent(
+                    json,
+                    Encoding.UTF8,
+                    "application/json");
+
+            using HttpResponseMessage response =
+                await _httpClient.SendAsync(request);
+
+            string responseContent =
+                await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "OpenAI seyahat detayı çıkarma isteği başarısız. " +
+                    "StatusCode: {StatusCode}, Response: {Response}",
+                    response.StatusCode,
+                    responseContent);
+
+                throw new HttpRequestException(
+                    $"OpenAI isteği başarısız oldu: {response.StatusCode}");
+            }
+
+            string? outputText =
+                GetOutputText(responseContent);
+
+            if (string.IsNullOrWhiteSpace(outputText))
+            {
+                return CreateDefaultResult();
+            }
+
+            try
+            {
+                TravelRequestDetails? result =
+                    JsonSerializer.Deserialize<TravelRequestDetails>(
+                        outputText,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                return NormalizeResult(result);
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Seyahat detayı JSON cevabı ayrıştırılamadı: {OutputText}",
+                    outputText);
+
+                return CreateDefaultResult();
+            }
+        }
+
+        private static TravelRequestDetails NormalizeResult(
+            TravelRequestDetails? result)
+        {
+            if (result is null)
+            {
+                return CreateDefaultResult();
+            }
+
+            if (result.DayCount <= 0)
+            {
+                result.DayCount = 3;
+            }
+
+            if (result.AdultCount <= 0)
+            {
+                result.AdultCount = 1;
+            }
+
+            if (result.ChildCount < 0)
+            {
+                result.ChildCount = 0;
+            }
+
+            result.BudgetLevel =
+                result.BudgetLevel?.Trim() switch
+                {
+                    "Economy" => "Economy",
+                    "Luxury" => "Luxury",
+                    _ => "Medium"
+                };
+
+            return result;
+        }
+
+        private static string? GetOutputText(
+            string responseContent)
+        {
+            using JsonDocument document =
+                JsonDocument.Parse(responseContent);
+
+            JsonElement root =
+                document.RootElement;
+
+            if (root.TryGetProperty(
+                    "output_text",
+                    out JsonElement outputTextElement))
+            {
+                return outputTextElement.GetString();
+            }
+
+            if (!root.TryGetProperty(
+                    "output",
+                    out JsonElement outputElement) ||
+                outputElement.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            foreach (JsonElement outputItem
+                     in outputElement.EnumerateArray())
+            {
+                if (!outputItem.TryGetProperty(
+                        "content",
+                        out JsonElement contentElement) ||
+                    contentElement.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (JsonElement contentItem
+                         in contentElement.EnumerateArray())
+                {
+                    if (contentItem.TryGetProperty(
+                            "text",
+                            out JsonElement textElement))
+                    {
+                        return textElement.GetString();
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static TravelRequestDetails CreateDefaultResult()
+        {
+            return new TravelRequestDetails
+            {
+                City = null,
+                Country = null,
+                DayCount = 3,
+                AdultCount = 1,
+                ChildCount = 0,
+                BudgetLevel = "Medium"
+            };
+        }
+    }
+}

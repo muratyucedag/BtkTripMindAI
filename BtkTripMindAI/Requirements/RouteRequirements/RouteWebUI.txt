@@ -1,0 +1,125 @@
+﻿---------------------------------------------------------------------------------------------------------
+
+<!-- Dynamic Route Card -->
+<div id="routeCard"
+     class="bg-primary-container/20 p-6 rounded-3xl border border-primary/10">
+
+    <div class="flex items-center gap-3 mb-4">
+        <span class="material-symbols-outlined text-primary">
+            route
+        </span>
+
+        <h4 id="routeTitle"
+            class="font-headline-md text-on-primary-container">
+            3 Günlük Rota
+        </h4>
+    </div>
+
+    <div id="routeDaysContainer"
+         class="space-y-6 relative
+                before:absolute
+                before:left-[11px]
+                before:top-2
+                before:bottom-2
+                before:w-0.5
+                before:bg-primary/20">
+
+        <p id="routePlaceholder"
+           class="text-body-md text-on-surface-variant">
+            Henüz bir seyahat rotası oluşturulmadı.
+        </p>
+    </div>
+</div>
+
+
+---------------------------------------------------------------------------------------------------------
+
+const routeCard =
+    document.getElementById("routeCard");
+
+const routeTitle =
+    document.getElementById("routeTitle");
+
+const routeDaysContainer =
+    document.getElementById("routeDaysContainer");
+
+
+---------------------------------------------------------------------------------------------------------
+
+function updateRoute(route) {
+    if (!route ||
+        !Array.isArray(route.days) ||
+        route.days.length === 0) {
+        return;
+    }
+
+    const dayCount =
+        route.dayCount || route.days.length;
+
+    routeTitle.textContent =
+        `${dayCount} Günlük Rota`;
+
+    routeDaysContainer.innerHTML = "";
+
+    route.days.forEach(function (day, index) {
+        const routeDayElement =
+            document.createElement("div");
+
+        routeDayElement.className =
+            "flex gap-4 relative";
+
+        const circleElement =
+            document.createElement("div");
+
+        circleElement.className =
+            index === 0
+                ? "w-6 h-6 bg-primary rounded-full border-4 border-white shadow-sm z-10 flex-shrink-0"
+                : "w-6 h-6 bg-white rounded-full border-4 border-primary/30 shadow-sm z-10 flex-shrink-0";
+
+        const contentElement =
+            document.createElement("div");
+
+        const titleElement =
+            document.createElement("p");
+
+        titleElement.className =
+            index === 0
+                ? "text-label-md font-bold text-primary uppercase"
+                : "text-label-md font-bold text-on-surface-variant uppercase";
+
+        titleElement.textContent =
+            `${day.dayNumber}. Gün: ${day.title}`;
+
+        const descriptionElement =
+            document.createElement("p");
+
+        descriptionElement.className =
+            "text-body-md text-on-surface-variant";
+
+        descriptionElement.textContent =
+            day.description;
+
+        contentElement.appendChild(titleElement);
+        contentElement.appendChild(descriptionElement);
+
+        routeDayElement.appendChild(circleElement);
+        routeDayElement.appendChild(contentElement);
+
+        routeDaysContainer.appendChild(routeDayElement);
+    });
+}
+
+
+---------------------------------------------------------------------------------------------------------
+
+if (agentResult.intent === "Route" &&
+    agentResult.route) {
+
+    updateRoute(agentResult.route);
+}
+---------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------

@@ -11,6 +11,7 @@
         Currency,
         Flight,
         Transportation,
-        Attraction
+        Attraction,
+        Budget
     }
 }

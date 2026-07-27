@@ -73,8 +73,191 @@
 
 
 -----------------------------------------------------------------------------------------------------------------
+
+<!-- Weather Card -->
+<div id="weatherCard"
+     class="bg-secondary-container/30 p-6 rounded-3xl flex flex-col justify-between border border-secondary-fixed/50">
+
+    <div class="flex justify-between items-start">
+        <div>
+            <p class="text-label-md text-on-secondary-container font-bold">
+                Hava Durumu
+            </p>
+
+            <h4 id="currentTemperature"
+                class="text-display-lg-mobile text-on-secondary-container leading-none">
+                --°C
+            </h4>
+
+            <p id="currentCondition"
+               class="text-label-md text-on-secondary-container/80">
+                Şehir seçilmedi
+            </p>
+
+            <p id="feelsLikeTemperature"
+               class="text-[11px] text-on-secondary-container/60 mt-1">
+            </p>
+        </div>
+
+        <img id="currentWeatherIcon"
+             class="w-16 h-16 object-contain hidden"
+             alt="Hava durumu ikonu" />
+    </div>
+
+    <div id="forecastContainer"
+         class="grid grid-cols-3 gap-3 pt-4 border-t border-on-secondary-container/10 mt-4">
+
+        <div class="text-center">
+            <p class="text-[10px] text-on-secondary-container/60 font-bold">
+                -
+            </p>
+
+            <div class="h-8 flex items-center justify-center">
+                <span class="material-symbols-outlined text-sm">
+                    cloud
+                </span>
+            </div>
+
+            <p class="text-[12px] font-bold">
+                --°
+            </p>
+        </div>
+
+        <div class="text-center">
+            <p class="text-[10px] text-on-secondary-container/60 font-bold">
+                -
+            </p>
+
+            <div class="h-8 flex items-center justify-center">
+                <span class="material-symbols-outlined text-sm">
+                    cloud
+                </span>
+            </div>
+
+            <p class="text-[12px] font-bold">
+                --°
+            </p>
+        </div>
+
+        <div class="text-center">
+            <p class="text-[10px] text-on-secondary-container/60 font-bold">
+                -
+            </p>
+
+            <div class="h-8 flex items-center justify-center">
+                <span class="material-symbols-outlined text-sm">
+                    cloud
+                </span>
+            </div>
+
+            <p class="text-[12px] font-bold">
+                --°
+            </p>
+        </div>
+    </div>
+</div>
+
 -----------------------------------------------------------------------------------------------------------------
+
+const currentTemperature =
+    document.getElementById("currentTemperature");
+
+const currentCondition =
+    document.getElementById("currentCondition");
+
+const feelsLikeTemperature =
+    document.getElementById("feelsLikeTemperature");
+
+const currentWeatherIcon =
+    document.getElementById("currentWeatherIcon");
+
+const forecastContainer =
+    document.getElementById("forecastContainer");
+
+
 -----------------------------------------------------------------------------------------------------------------
+
+function updateWeather(weather) {
+    if (!weather) {
+        return;
+    }
+
+    currentTemperature.textContent =
+        `${Math.round(weather.temperature)}°C`;
+
+    currentCondition.textContent =
+        weather.condition || "Hava durumu bilgisi bulunamadı";
+
+    feelsLikeTemperature.textContent =
+        `Hissedilen: ${Math.round(weather.feelsLike)}°C`;
+
+    if (weather.iconUrl) {
+        currentWeatherIcon.src = weather.iconUrl;
+        currentWeatherIcon.classList.remove("hidden");
+    } else {
+        currentWeatherIcon.removeAttribute("src");
+        currentWeatherIcon.classList.add("hidden");
+    }
+
+    if (!Array.isArray(weather.forecasts)) {
+        return;
+    }
+
+    forecastContainer.innerHTML = "";
+
+    weather.forecasts.slice(0, 3).forEach(function (forecast) {
+        const forecastItem =
+            document.createElement("div");
+
+        forecastItem.className = "text-center";
+
+        const dayName =
+            forecast.dayName || "-";
+
+        const temperature =
+            Math.round(forecast.averageTemperature);
+
+        const minTemperature =
+            Math.round(forecast.minTemperature);
+
+        const maxTemperature =
+            Math.round(forecast.maxTemperature);
+
+        const iconHtml = forecast.iconUrl
+            ? `
+                <img src="${forecast.iconUrl}"
+                     alt="${forecast.condition || "Hava durumu"}"
+                     class="w-8 h-8 mx-auto object-contain" />
+              `
+            : `
+                <span class="material-symbols-outlined text-sm">
+                    cloud
+                </span>
+              `;
+
+        forecastItem.innerHTML = `
+            <p class="text-[10px] text-on-secondary-container/60 font-bold">
+                ${dayName}
+            </p>
+
+            <div class="h-8 flex items-center justify-center">
+                ${iconHtml}
+            </div>
+
+            <p class="text-[12px] font-bold">
+                ${temperature}°
+            </p>
+
+            <p class="text-[9px] text-on-secondary-container/60">
+                ${minTemperature}° / ${maxTemperature}°
+            </p>
+        `;
+
+        forecastContainer.appendChild(forecastItem);
+    });
+}
+
+
 -----------------------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------

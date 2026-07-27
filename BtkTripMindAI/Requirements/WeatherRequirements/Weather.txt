@@ -1,0 +1,545 @@
+﻿ public bool IsSuccess { get; set; }
+
+        public string? ErrorMessage { get; set; }
+
+        public string City { get; set; } = string.Empty;
+
+        public string Country { get; set; } = string.Empty;
+
+        public double Temperature { get; set; }
+
+        public double FeelsLike { get; set; }
+
+        public double MinTemperature { get; set; }
+
+        public double MaxTemperature { get; set; }
+
+        public int Humidity { get; set; }
+
+        public double WindSpeed { get; set; }
+
+        public string Condition { get; set; } = string.Empty;
+
+        public string? Description { get; set; }
+
+        public string? IconUrl { get; set; }
+
+        public List<WeatherForecast> Forecasts { get; set; } = new();
+
+-----------------------------------------------------------------------------------------------
+
+  public bool IsSuccess { get; set; }
+
+        public string? ErrorMessage { get; set; }
+
+        public string City { get; set; } = string.Empty;
+
+        public string Country { get; set; } = string.Empty;
+
+        public double Temperature { get; set; }
+
+        public double FeelsLike { get; set; }
+
+        public string Condition { get; set; } = string.Empty;
+
+        public string? IconUrl { get; set; }
+
+        public List<WeatherForecast> Forecasts { get; set; } = new();
+
+
+-----------------------------------------------------------------------------------------------
+
+namespace BtkTripMindAI.Models.WeatherModels
+{
+    public class WeatherForecast
+    {
+        public DateTime Date { get; set; }
+        public string DayName { get; set; } = string.Empty;
+        public double MinTemperature { get; set; }
+        public double MaxTemperature { get; set; }
+        public double AverageTemperature { get; set; }
+        public string Condition { get; set; } = string.Empty;
+        public string? IconUrl { get; set; }
+        public int ChanceOfRain { get; set; }
+    }
+}
+
+
+-----------------------------------------------------------------------------------------------
+
+using System.Text.Json.Serialization;
+
+namespace TripMindAI.Services.WeatherServices.Models
+{
+    public class RapidApiWeatherResponse
+    {
+        [JsonPropertyName("location")]
+        public RapidApiWeatherLocation? Location { get; set; }
+
+        [JsonPropertyName("current")]
+        public RapidApiCurrentWeather? Current { get; set; }
+
+        [JsonPropertyName("forecast")]
+        public RapidApiForecastContainer? Forecast { get; set; }
+    }
+
+    public class RapidApiWeatherLocation
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("country")]
+        public string? Country { get; set; }
+    }
+
+    public class RapidApiCurrentWeather
+    {
+        [JsonPropertyName("temp_c")]
+        public double TemperatureCelsius { get; set; }
+
+        [JsonPropertyName("feelslike_c")]
+        public double FeelsLikeCelsius { get; set; }
+
+        [JsonPropertyName("condition")]
+        public RapidApiWeatherCondition? Condition { get; set; }
+    }
+
+    public class RapidApiForecastContainer
+    {
+        [JsonPropertyName("forecastday")]
+        public List<RapidApiForecastDay> ForecastDays { get; set; } = new();
+    }
+
+    public class RapidApiForecastDay
+    {
+        [JsonPropertyName("date")]
+        public string? Date { get; set; }
+
+        [JsonPropertyName("day")]
+        public RapidApiDayDetail? Day { get; set; }
+    }
+
+    public class RapidApiDayDetail
+    {
+        [JsonPropertyName("maxtemp_c")]
+        public double MaxTemperatureCelsius { get; set; }
+
+        [JsonPropertyName("mintemp_c")]
+        public double MinTemperatureCelsius { get; set; }
+
+        [JsonPropertyName("avgtemp_c")]
+        public double AverageTemperatureCelsius { get; set; }
+
+        [JsonPropertyName("daily_chance_of_rain")]
+        public int ChanceOfRain { get; set; }
+
+        [JsonPropertyName("condition")]
+        public RapidApiWeatherCondition? Condition { get; set; }
+    }
+
+    public class RapidApiWeatherCondition
+    {
+        [JsonPropertyName("text")]
+        public string? Text { get; set; }
+
+        [JsonPropertyName("icon")]
+        public string? Icon { get; set; }
+
+        [JsonPropertyName("code")]
+        public int Code { get; set; }
+    }
+}
+
+
+-----------------------------------------------------------------------------------------------
+
+using System.Globalization;
+using System.Net.Http.Headers;
+using System.Text.Json;
+using TripMindAI.Services.WeatherServices.Models;
+
+namespace TripMindAI.Services.WeatherServices
+{
+    public class RapidApiWeatherService : IWeatherService
+    {
+        private const string RapidApiKey =
+            "BURAYA_YENI_RAPID_API_KEY_GELECEK";
+
+        private const string RapidApiHost =
+            "weatherapi-com.p.rapidapi.com";
+
+        private readonly HttpClient _httpClient;
+        private readonly ILogger<RapidApiWeatherService> _logger;
+
+        public RapidApiWeatherService(
+            HttpClient httpClient,
+            ILogger<RapidApiWeatherService> logger)
+        {
+            _httpClient = httpClient;
+            _logger = logger;
+        }
+
+        public async Task<WeatherResult> GetWeatherAsync(
+            string city,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(city))
+            {
+                return new WeatherResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage =
+                        "Hava durumu bilgisi için şehir adı gereklidir."
+                };
+            }
+
+            try
+            {
+                var encodedCity = Uri.EscapeDataString(city.Trim());
+
+                var requestUrl =
+                    $"https://{RapidApiHost}/forecast.json" +
+                    $"?q={encodedCity}&days=3";
+
+                using var request = new HttpRequestMessage(
+                    HttpMethod.Get,
+                    requestUrl);
+
+                request.Headers.Add(
+                    "x-rapidapi-key",
+                    RapidApiKey);
+
+                request.Headers.Add(
+                    "x-rapidapi-host",
+                    RapidApiHost);
+
+                request.Headers.Accept.Add(
+                    new MediaTypeWithQualityHeaderValue(
+                        "application/json"));
+
+                using var response = await _httpClient.SendAsync(
+                    request,
+                    cancellationToken);
+
+                var responseContent =
+                    await response.Content.ReadAsStringAsync(
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning(
+                        "Weather API başarısız cevap verdi. " +
+                        "StatusCode: {StatusCode}, City: {City}, Response: {Response}",
+                        response.StatusCode,
+                        city,
+                        responseContent);
+
+                    return new WeatherResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage =
+                            $"{city} için hava durumu bilgisi alınamadı."
+                    };
+                }
+
+                var apiResponse =
+                    JsonSerializer.Deserialize<RapidApiWeatherResponse>(
+                        responseContent,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                if (apiResponse?.Location is null ||
+                    apiResponse.Current is null)
+                {
+                    return new WeatherResult
+                    {
+                        IsSuccess = false,
+                        ErrorMessage =
+                            "Hava durumu servisinden geçerli veri alınamadı."
+                    };
+                }
+
+                var turkishCulture =
+                    CultureInfo.GetCultureInfo("tr-TR");
+
+                var forecastList =
+                    apiResponse.Forecast?.ForecastDays
+                        .Take(3)
+                        .Select(forecastDay =>
+                        {
+                            DateTime.TryParse(
+                                forecastDay.Date,
+                                CultureInfo.InvariantCulture,
+                                DateTimeStyles.None,
+                                out var forecastDate);
+
+                            return new WeatherForecast
+                            {
+                                Date = forecastDate,
+
+                                DayName = forecastDate == DateTime.Today
+                                    ? "Bugün"
+                                    : turkishCulture.DateTimeFormat
+                                        .GetAbbreviatedDayName(
+                                            forecastDate.DayOfWeek),
+
+                                MinTemperature =
+                                    forecastDay.Day?
+                                        .MinTemperatureCelsius ?? 0,
+
+                                MaxTemperature =
+                                    forecastDay.Day?
+                                        .MaxTemperatureCelsius ?? 0,
+
+                                AverageTemperature =
+                                    forecastDay.Day?
+                                        .AverageTemperatureCelsius ?? 0,
+
+                                Condition =
+                                    forecastDay.Day?
+                                        .Condition?
+                                        .Text ?? string.Empty,
+
+                                IconUrl = BuildIconUrl(
+                                    forecastDay.Day?
+                                        .Condition?
+                                        .Icon),
+
+                                ChanceOfRain =
+                                    forecastDay.Day?
+                                        .ChanceOfRain ?? 0
+                            };
+                        })
+                        .ToList()
+                    ?? new List<WeatherForecast>();
+
+                return new WeatherResult
+                {
+                    IsSuccess = true,
+
+                    City =
+                        apiResponse.Location.Name
+                        ?? city,
+
+                    Country =
+                        apiResponse.Location.Country
+                        ?? string.Empty,
+
+                    Temperature =
+                        apiResponse.Current.TemperatureCelsius,
+
+                    FeelsLike =
+                        apiResponse.Current.FeelsLikeCelsius,
+
+                    Condition =
+                        apiResponse.Current.Condition?
+                            .Text ?? string.Empty,
+
+                    IconUrl = BuildIconUrl(
+                        apiResponse.Current.Condition?.Icon),
+
+                    Forecasts = forecastList
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning(
+                    "Hava durumu isteği zaman aşımına uğradı. City: {City}",
+                    city);
+
+                return new WeatherResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage =
+                        "Hava durumu servisi zaman aşımına uğradı."
+                };
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Hava durumu JSON cevabı çözümlenemedi. City: {City}",
+                    city);
+
+                return new WeatherResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage =
+                        "Hava durumu verileri işlenemedi."
+                };
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Hava durumu alınırken hata oluştu. City: {City}",
+                    city);
+
+                return new WeatherResult
+                {
+                    IsSuccess = false,
+                    ErrorMessage =
+                        "Hava durumu bilgisi alınırken bir hata oluştu."
+                };
+            }
+        }
+
+        private static string? BuildIconUrl(string? iconUrl)
+        {
+            if (string.IsNullOrWhiteSpace(iconUrl))
+            {
+                return null;
+            }
+
+            if (iconUrl.StartsWith("//"))
+            {
+                return $"https:{iconUrl}";
+            }
+
+            return iconUrl;
+        }
+    }
+}
+
+-----------------------------------------------------------------------------------------------
+
+public async Task<AgentResult> ProcessAsync(
+    string prompt,
+    CancellationToken cancellationToken = default)
+{
+    var intent =
+        await _intentDetector.DetectAsync(
+            prompt,
+            cancellationToken);
+
+    var cityResult =
+        await _cityExtractor.ExtractAsync(
+            prompt,
+            cancellationToken);
+
+    var city = cityResult.City;
+    var country = cityResult.Country;
+
+    if (intent == TravelIntent.Weather)
+    {
+        if (string.IsNullOrWhiteSpace(city))
+        {
+            return new AgentResult
+            {
+                IsSuccess = true,
+                Intent = TravelIntent.Weather,
+                City = null,
+                Country = null,
+                Message =
+                    "Hava durumunu kontrol edebilirim. " +
+                    "Hangi şehir için bilgi almak istiyorsunuz?"
+            };
+        }
+
+        var weatherResult =
+            await _weatherService.GetWeatherAsync(
+                city,
+                cancellationToken);
+
+        if (!weatherResult.IsSuccess)
+        {
+            return new AgentResult
+            {
+                IsSuccess = false,
+                Intent = TravelIntent.Weather,
+                ToolName = nameof(RapidApiWeatherService),
+                City = city,
+                Country = country,
+                Weather = weatherResult,
+                Message =
+                    weatherResult.ErrorMessage
+                    ?? "Hava durumu bilgisi alınamadı."
+            };
+        }
+
+        return new AgentResult
+        {
+            IsSuccess = true,
+            Intent = TravelIntent.Weather,
+            ToolName = nameof(RapidApiWeatherService),
+
+            City = weatherResult.City,
+            Country = weatherResult.Country,
+
+            Weather = weatherResult,
+
+            Message =
+                $"{weatherResult.City} için hava sıcaklığı " +
+                $"{weatherResult.Temperature:0.#}°C. " +
+                $"Hava durumu: {weatherResult.Condition}. " +
+                $"Hissedilen sıcaklık " +
+                $"{weatherResult.FeelsLike:0.#}°C."
+        };
+    }
+
+    return new AgentResult
+    {
+        IsSuccess = true,
+        Intent = intent,
+        City = city,
+        Country = country,
+        Message = CreateResponse(intent, city)
+    };
+}
+
+-----------------------------------------------------------------------------------------------
+
+private static string CreateResponse(
+    TravelIntent intent,
+    string? city)
+{
+    return intent switch
+    {
+        TravelIntent.Hotel when city is not null =>
+            $"{city} için uygun otelleri araştırabilirim. " +
+            "Tarih aralığını ve kişi sayısını paylaşır mısınız?",
+
+        TravelIntent.Hotel =>
+            "Size uygun otelleri listeleyebilirim. " +
+            "Şehir, tarih aralığı ve kişi sayısını paylaşır mısınız?",
+
+        TravelIntent.Restaurant when city is not null =>
+            $"{city} için restoran önerileri hazırlayabilirim. " +
+            "Tercih ettiğiniz mutfak türü var mı?",
+
+        TravelIntent.Restaurant =>
+            "Restoran önerileri hazırlayabilirim. " +
+            "Hangi şehirde restoran arıyorsunuz?",
+
+        TravelIntent.Route when city is not null =>
+            $"{city} için seyahat rotası oluşturabilirim. " +
+            "Kaç günlük bir plan istiyorsunuz?",
+
+        TravelIntent.Route =>
+            "Seyahat rotası oluşturabilirim. " +
+            "Şehir ve gün sayısını paylaşır mısınız?",
+
+        TravelIntent.Attraction when city is not null =>
+            $"{city} için görülmesi gereken yerleri listeleyebilirim.",
+
+        TravelIntent.Attraction =>
+            "Gezilecek yerleri listeleyebilirim. " +
+            "Hangi şehir için öneri almak istiyorsunuz?",
+
+        _ when city is not null =>
+            $"{city} ile ilgili seyahat talebinizi aldım.",
+
+        _ =>
+            "Talebinizi aldım. Gideceğiniz şehri ve " +
+            "seyahat tercihlerinizi paylaşabilirsiniz."
+    };
+}
+
+
+-----------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------
