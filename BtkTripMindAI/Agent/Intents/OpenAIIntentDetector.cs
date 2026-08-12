@@ -36,79 +36,112 @@ namespace BtkTripMindAI.Agent.Intents
             {
                 model,
                 instructions =
-                    """
-                    Sen BtkTripMindAI isimli bir seyahat asistanının
-                    intent sınıflandırma bileşenisin.
+    """
+    Sen BtkTripMindAI isimli bir seyahat asistanının
+    intent sınıflandırma bileşenisin.
 
-                    Kullanıcının mesajını analiz et ve yalnızca aşağıdaki
-                    intent değerlerinden birini seç:
+    Kullanıcının mesajını analiz et ve yalnızca aşağıdaki
+    intent değerlerinden birini seç:
 
-                    - Unknown
-                    - CityRecommendation
-                    - Weather
-                    - Hotel
-                    - Restaurant
-                    - Route
-                    - Currency
-                    - Flight
-                    - Transportation
-                    - Attraction
+    - Unknown
+    - CityRecommendation
+    - Weather
+    - Hotel
+    - Restaurant
+    - Route
+    - Currency
+    - Flight
+    - Transportation
+    - Attraction
+    - Budget
+    - Email
 
-                    Intent açıklamaları:
+    Intent açıklamaları:
 
-                    Weather:
-                    Hava durumu, sıcaklık, yağmur, kar, rüzgar veya iklim
-                    soruları.
+    Weather:
+    Hava durumu, sıcaklık, yağmur, kar, rüzgar veya iklim
+    soruları.
 
-                    Hotel:
-                    Otel, konaklama, pansiyon, apart, resort veya kalacak
-                    yer soruları.
+    Hotel:
+    Otel, konaklama, pansiyon, apart, resort veya kalacak
+    yer soruları.
 
-                    Restaurant:
-                    Restoran, yemek, kahvaltı, kafe, lokanta veya mutfak
-                    önerileri.
+    Restaurant:
+    Restoran, yemek, kahvaltı, kafe, lokanta veya mutfak
+    önerileri.
 
-                    Route:
-                    Gezi planı, günlük program, seyahat rotası veya
-                    kaç günlük plan oluşturma talepleri.
+    Route:
+    Gezi planı, günlük program, seyahat rotası veya
+    kaç günlük plan oluşturma talepleri.
 
-                    Currency:
-                    Döviz kuru, para çevirme, euro, dolar, sterlin veya
-                    para birimi hesaplama soruları.
+    Currency:
+    Döviz kuru, para çevirme, euro, dolar, sterlin veya
+    para birimi hesaplama soruları.
 
-                    Flight:
-                    Uçuş, uçak bileti, havayolu veya sefer araştırma
-                    talepleri.
+    Flight:
+    Uçuş, uçak bileti, havayolu veya sefer araştırma
+    talepleri.
 
-                    Transportation:
-                    Havalimanı transferi, metro, tren, otobüs, taksi veya
-                    bir noktadan başka bir noktaya ulaşım soruları.
+    Transportation:
+    Havalimanı transferi, metro, tren, otobüs, taksi veya
+    bir noktadan başka bir noktaya ulaşım soruları.
 
-                    Attraction:
-                    Gezilecek yerler, müzeler, aktiviteler veya görülmesi
-                    gereken noktalar.
+    Attraction:
+    Gezilecek yerler, müzeler, aktiviteler veya görülmesi
+    gereken noktalar.
 
-                    CityRecommendation:
-                    Kullanıcının hangi şehre veya ülkeye gitmesi gerektiği
-                    konusunda öneri istemesi.
+    CityRecommendation:
+    Kullanıcının hangi şehre veya ülkeye gitmesi gerektiği
+    konusunda öneri istemesi.
 
-                    Unknown:
-                    Yukarıdaki kategorilerden hiçbirine uymayan mesajlar.
+    Budget:
+    Seyahat bütçesi, tahmini maliyet, toplam harcama,
+    konaklama, yemek, ulaşım ve aktivite giderlerini
+    hesaplama talepleri.
 
-                    Kurallar:
-                    - Yalnızca tek bir intent seç.
-                    - Açıklama yazma.
-                    - Markdown kullanma.
-                    - Kullanıcının mesajında birden fazla konu varsa ana
-                      isteği seç.
-                    - Sonucu yalnızca JSON olarak döndür.
+    Email:
+    Seyahat planı, rota, bütçe, otel, restoran, rezervasyon
+    veya diğer seyahat bilgilerinin bir e-posta adresine
+    gönderilmesi talepleri.
 
-                    JSON biçimi:
+    Calendar:
+    Seyahat planını, tatil tarihlerini, uçuşu, rezervasyonu
+    veya başka bir seyahat bilgisini Google Calendar'a,
+    Google Takvim'e veya takvime ekleme talepleri.
 
-                    {
-                      "intent": "Weather"
-                    }
-                    """,
+    Unknown:
+    Yukarıdaki kategorilerden hiçbirine uymayan mesajlar.
+
+    Kurallar:
+    - Yalnızca tek bir intent seç.
+    - Açıklama yazma.
+    - Markdown kullanma.
+    - Kullanıcının mesajında birden fazla konu varsa ana
+      isteği seç.
+    - Seyahatin ne kadar tutacağını, maliyetini veya bütçesini
+      soran mesajlarda Budget intent'ini seç.
+    - Kullanıcı bir içeriğin mail veya e-posta yoluyla
+    gönderilmesini istiyorsa Email intent'ini seç.
+    - Sonucu yalnızca JSON olarak döndür.
+
+    Örnekler:
+
+    "Roma için 4 günlük bütçe hesapla."
+    {
+      "intent": "Budget"
+    }
+
+    "Eşim ve çocuğumla Paris tatili ne kadar tutar?"
+    {
+      "intent": "Budget"
+    }
+
+    JSON biçimi:
+
+    {
+      "intent": "Weather"
+    }
+    """,
                 input = message
             };
 

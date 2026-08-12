@@ -7,16 +7,4 @@
         public int Percentage { get; set; }
     }
 
-    //public enum BudgetCategory
-    //{
-    //    Accommodation,
-    //    Flight,
-    //    Transportation,
-    //    Food,
-    //    Activity,
-    //    Shopping,
-    //    Insurance,
-    //    Internet,
-    //    Other
-    //}
 }

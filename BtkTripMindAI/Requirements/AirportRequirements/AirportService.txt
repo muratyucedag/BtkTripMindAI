@@ -1,0 +1,446 @@
+﻿using BtkTripMindAI.Dtos.AirportDtos;
+using BtkTripMindAI.Models.AirportModels;
+using System.Net.Http.Headers;
+using System.Text.Json;
+
+namespace BtkTripMindAI.Services.AirportServices
+{
+    public class AirportService : IAirportService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<AirportService> _logger;
+
+        public AirportService(
+            HttpClient httpClient,
+            IConfiguration configuration,
+            ILogger<AirportService> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        public async Task<AirportSearchResult> SearchAirportsAsync(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return CreateFailureResult(
+                    query,
+                    "Aranacak şehir veya havalimanı bilgisi gereklidir.");
+            }
+
+            string? apiKey =
+                _configuration["RapidApiFlight:ApiKey"];
+
+            string host =
+                _configuration["RapidApiFlight:Host"]
+                ?? "google-flights2.p.rapidapi.com";
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                return CreateFailureResult(
+                    query,
+                    "RapidAPI Flight API anahtarı bulunamadı.");
+            }
+
+            string normalizedQuery =
+                NormalizeAirportQuery(query);
+
+            List<string> searchQueries =
+                BuildSearchQueries(normalizedQuery);
+
+            foreach (string searchQuery in searchQueries)
+            {
+                AirportSearchResult? result =
+                    await TrySearchAirportAsync(
+                        searchQuery,
+                        apiKey,
+                        host);
+
+                if (result is not null &&
+                    result.IsSuccess &&
+                    result.BestMatch is not null)
+                {
+                    return result;
+                }
+            }
+
+            return CreateFailureResult(
+                normalizedQuery,
+                $"{query} için havalimanı bulunamadı.");
+        }
+
+        private async Task<AirportSearchResult?> TrySearchAirportAsync(
+            string query,
+            string apiKey,
+            string host)
+        {
+            string requestUrl =
+                $"https://{host}/api/v1/searchAirport" +
+                $"?query={Uri.EscapeDataString(query)}" +
+                $"&language_code=en-US" +
+                $"&country_code=US";
+
+            try
+            {
+                using var request =
+                    new HttpRequestMessage(
+                        HttpMethod.Get,
+                        requestUrl);
+
+                request.Headers.Add(
+                    "x-rapidapi-key",
+                    apiKey);
+
+                request.Headers.Add(
+                    "x-rapidapi-host",
+                    host);
+
+                request.Headers.Accept.Add(
+                    new MediaTypeWithQualityHeaderValue(
+                        "application/json"));
+
+                using HttpResponseMessage response =
+                    await _httpClient.SendAsync(request);
+
+                string responseContent =
+                    await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning(
+                        "Airport API başarısız cevap verdi. " +
+                        "StatusCode: {StatusCode}, Query: {Query}, Response: {Response}",
+                        response.StatusCode,
+                        query,
+                        responseContent);
+
+                    return null;
+                }
+
+                RapidApiAirportSearchResponseDto? apiResponse =
+                    JsonSerializer.Deserialize<RapidApiAirportSearchResponseDto>(
+                        responseContent,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                if (apiResponse is null ||
+                    !apiResponse.Status)
+                {
+                    return null;
+                }
+
+                List<AirportOption> airports =
+                    ExtractAirports(
+                        apiResponse.Data);
+
+                if (airports.Count == 0)
+                {
+                    return null;
+                }
+
+                AirportOption? bestMatch =
+                    FindBestMatch(
+                        airports,
+                        query);
+
+                if (bestMatch is null)
+                {
+                    return null;
+                }
+
+                return new AirportSearchResult
+                {
+                    IsSuccess = true,
+                    Query = query,
+                    Airports = airports,
+                    BestMatch = bestMatch
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning(
+                    "Havalimanı fallback arama isteği zaman aşımına uğradı. " +
+                    "Query: {Query}",
+                    query);
+
+                return null;
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Havalimanı fallback API JSON cevabı ayrıştırılamadı. " +
+                    "Query: {Query}",
+                    query);
+
+                return null;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Havalimanı fallback sorgusu başarısız oldu. " +
+                    "Query: {Query}",
+                    query);
+
+                return null;
+            }
+        }
+
+        private static List<AirportOption> ExtractAirports(
+            List<RapidApiAirportSearchItemDto>? items)
+        {
+            var airports =
+                new List<AirportOption>();
+
+            if (items is null ||
+                items.Count == 0)
+            {
+                return airports;
+            }
+
+            foreach (RapidApiAirportSearchItemDto item in items)
+            {
+                CollectAirports(
+                    item,
+                    airports);
+            }
+
+            return airports
+                .GroupBy(
+                    airport => airport.IataCode,
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(
+                    group => group.First())
+                .ToList();
+        }
+
+        private static void CollectAirports(
+            RapidApiAirportSearchItemDto item,
+            List<AirportOption> airports)
+        {
+            if (IsAirport(item))
+            {
+                AddAirportIfValid(
+                    airports,
+                    item);
+            }
+
+            if (item.List is null ||
+                item.List.Count == 0)
+            {
+                return;
+            }
+
+            foreach (RapidApiAirportSearchItemDto childItem in item.List)
+            {
+                CollectAirports(
+                    childItem,
+                    airports);
+            }
+        }
+
+        private static bool IsAirport(
+            RapidApiAirportSearchItemDto item)
+        {
+            return string.Equals(
+                item.Type,
+                "airport",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void AddAirportIfValid(
+            List<AirportOption> airports,
+            RapidApiAirportSearchItemDto item)
+        {
+            if (string.IsNullOrWhiteSpace(item.Id))
+            {
+                return;
+            }
+
+            string iataCode =
+                item.Id
+                    .Trim()
+                    .ToUpperInvariant();
+
+            /*
+             * API şehir, bölge veya Google entity kimliği de döndürebilir.
+             * Gerçek IATA kodları üç karakterlidir.
+             */
+            if (iataCode.Length != 3)
+            {
+                return;
+            }
+
+            airports.Add(
+                new AirportOption
+                {
+                    IataCode = iataCode,
+                    AirportName =
+                        item.Title?.Trim()
+                        ?? string.Empty,
+                    City =
+                        item.City?.Trim()
+                        ?? string.Empty,
+                    CountryInfo =
+                        item.Subtitle?.Trim(),
+                    Distance =
+                        item.Distance?.Trim()
+                });
+        }
+
+        private static AirportOption? FindBestMatch(
+            List<AirportOption> airports,
+            string query)
+        {
+            string normalizedQuery =
+                query.Trim();
+
+            AirportOption? exactCodeMatch =
+                airports.FirstOrDefault(
+                    airport =>
+                        string.Equals(
+                            airport.IataCode,
+                            normalizedQuery,
+                            StringComparison.OrdinalIgnoreCase));
+
+            if (exactCodeMatch is not null)
+            {
+                return exactCodeMatch;
+            }
+
+            AirportOption? exactAirportNameMatch =
+                airports.FirstOrDefault(
+                    airport =>
+                        string.Equals(
+                            airport.AirportName,
+                            normalizedQuery,
+                            StringComparison.OrdinalIgnoreCase));
+
+            if (exactAirportNameMatch is not null)
+            {
+                return exactAirportNameMatch;
+            }
+
+            AirportOption? airportNameContainsMatch =
+                airports.FirstOrDefault(
+                    airport =>
+                        airport.AirportName.Contains(
+                            normalizedQuery,
+                            StringComparison.OrdinalIgnoreCase));
+
+            if (airportNameContainsMatch is not null)
+            {
+                return airportNameContainsMatch;
+            }
+
+            AirportOption? cityMatch =
+                airports.FirstOrDefault(
+                    airport =>
+                        string.Equals(
+                            airport.City,
+                            normalizedQuery,
+                            StringComparison.OrdinalIgnoreCase));
+
+            return cityMatch
+                ?? airports.FirstOrDefault();
+        }
+
+        private static AirportSearchResult CreateFailureResult(
+            string? query,
+            string errorMessage)
+        {
+            return new AirportSearchResult
+            {
+                IsSuccess = false,
+                Query =
+                    query?.Trim()
+                    ?? string.Empty,
+                ErrorMessage = errorMessage,
+                Airports = new List<AirportOption>(),
+                BestMatch = null
+            };
+        }
+
+        private static string NormalizeAirportQuery(
+            string query)
+        {
+            string normalizedQuery =
+                query.Trim();
+
+            string[] removableWords =
+            {
+                " Uluslararası Havalimanı",
+                " Uluslararası Havaalanı",
+                " International Airport",
+                " Havalimanı",
+                " Havaalanı",
+                " Airport"
+            };
+
+            foreach (string word in removableWords)
+            {
+                normalizedQuery =
+                    normalizedQuery.Replace(
+                        word,
+                        "",
+                        StringComparison.OrdinalIgnoreCase);
+            }
+
+            return normalizedQuery.Trim();
+        }
+
+        private static List<string> BuildSearchQueries(
+            string query)
+        {
+            var queries =
+                new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                queries.Add(query);
+            }
+
+            string asciiQuery =
+                ConvertTurkishCharacters(query);
+
+            if (!string.Equals(
+                    asciiQuery,
+                    query,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                queries.Add(asciiQuery);
+            }
+
+            return queries
+                .Distinct(
+                    StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static string ConvertTurkishCharacters(
+            string value)
+        {
+            return value
+                .Replace("ç", "c")
+                .Replace("Ç", "C")
+                .Replace("ğ", "g")
+                .Replace("Ğ", "G")
+                .Replace("ı", "i")
+                .Replace("İ", "I")
+                .Replace("ö", "o")
+                .Replace("Ö", "O")
+                .Replace("ş", "s")
+                .Replace("Ş", "S")
+                .Replace("ü", "u")
+                .Replace("Ü", "U");
+        }
+    }
+}
+
+-------------------------------------------------------------------------------------------------------------
+

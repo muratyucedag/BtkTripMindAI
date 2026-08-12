@@ -1,0 +1,1184 @@
+﻿https://rapidapi.com/DataCrawler/api/google-flights2/
+
+-------------------------------------------------------------------------------------------------------------------
+
+using System.Text.Json.Serialization;
+
+namespace BtkTripMindAI.Dtos.FlightDtos
+{
+    public class RapidApiFlightResponseDto
+    {
+        [JsonPropertyName("status")]
+        public bool Status { get; set; }
+
+        [JsonPropertyName("message")]
+        public string? Message { get; set; }
+
+        [JsonPropertyName("data")]
+        public RapidApiFlightDataDto? Data { get; set; }
+    }
+
+    public class RapidApiFlightDataDto
+    {
+        [JsonPropertyName("itineraries")]
+        public RapidApiFlightItinerariesDto? Itineraries { get; set; }
+
+        [JsonPropertyName("priceHistory")]
+        public RapidApiFlightPriceHistoryDto? PriceHistory { get; set; }
+    }
+
+    public class RapidApiFlightItinerariesDto
+    {
+        [JsonPropertyName("topFlights")]
+        public List<RapidApiFlightOptionDto> TopFlights { get; set; } = new();
+
+        [JsonPropertyName("otherFlights")]
+        public List<RapidApiFlightOptionDto> OtherFlights { get; set; } = new();
+    }
+
+    public class RapidApiFlightOptionDto
+    {
+        [JsonPropertyName("departure_time")]
+        public string? DepartureTime { get; set; }
+
+        [JsonPropertyName("arrival_time")]
+        public string? ArrivalTime { get; set; }
+
+        [JsonPropertyName("duration")]
+        public RapidApiFlightDurationDto? Duration { get; set; }
+
+        [JsonPropertyName("flights")]
+        public List<RapidApiFlightSegmentDto> Flights { get; set; } = new();
+
+        [JsonPropertyName("self_transfer")]
+        public bool SelfTransfer { get; set; }
+
+        [JsonPropertyName("layovers")]
+        public List<RapidApiFlightLayoverDto>? Layovers { get; set; }
+
+        [JsonPropertyName("bags")]
+        public RapidApiFlightBagsDto? Bags { get; set; }
+
+        [JsonPropertyName("price")]
+        public decimal Price { get; set; }
+
+        [JsonPropertyName("stops")]
+        public int Stops { get; set; }
+
+        [JsonPropertyName("airline_logo")]
+        public string? AirlineLogo { get; set; }
+
+        [JsonPropertyName("booking_token")]
+        public string? BookingToken { get; set; }
+    }
+
+    public class RapidApiFlightSegmentDto
+    {
+        [JsonPropertyName("departure_airport")]
+        public RapidApiAirportDto? DepartureAirport { get; set; }
+
+        [JsonPropertyName("arrival_airport")]
+        public RapidApiAirportDto? ArrivalAirport { get; set; }
+
+        [JsonPropertyName("duration")]
+        public RapidApiFlightDurationDto? Duration { get; set; }
+
+        [JsonPropertyName("airline")]
+        public string? Airline { get; set; }
+
+        [JsonPropertyName("airline_logo")]
+        public string? AirlineLogo { get; set; }
+
+        [JsonPropertyName("flight_number")]
+        public string? FlightNumber { get; set; }
+
+        [JsonPropertyName("aircraft")]
+        public string? Aircraft { get; set; }
+
+        [JsonPropertyName("seat")]
+        public string? Seat { get; set; }
+
+        [JsonPropertyName("legroom")]
+        public string? Legroom { get; set; }
+    }
+
+    public class RapidApiAirportDto
+    {
+        [JsonPropertyName("airport_name")]
+        public string? AirportName { get; set; }
+
+        [JsonPropertyName("airport_code")]
+        public string? AirportCode { get; set; }
+
+        [JsonPropertyName("time")]
+        public string? Time { get; set; }
+    }
+
+    public class RapidApiFlightDurationDto
+    {
+        [JsonPropertyName("raw")]
+        public int Raw { get; set; }
+
+        [JsonPropertyName("text")]
+        public string? Text { get; set; }
+    }
+
+    public class RapidApiFlightBagsDto
+    {
+        [JsonPropertyName("carry_on")]
+        public int? CarryOn { get; set; }
+
+        [JsonPropertyName("checked")]
+        public int? Checked { get; set; }
+    }
+
+    public class RapidApiFlightLayoverDto
+    {
+        [JsonPropertyName("airport_name")]
+        public string? AirportName { get; set; }
+
+        [JsonPropertyName("airport_code")]
+        public string? AirportCode { get; set; }
+
+        [JsonPropertyName("duration")]
+        public int? Duration { get; set; }
+    }
+
+    public class RapidApiFlightPriceHistoryDto
+    {
+        [JsonPropertyName("summary")]
+        public RapidApiFlightPriceSummaryDto? Summary { get; set; }
+    }
+
+    public class RapidApiFlightPriceSummaryDto
+    {
+        [JsonPropertyName("current")]
+        public decimal Current { get; set; }
+    }
+}
+
+-------------------------------------------------------------------------------------------------------------------
+
+namespace BtkTripMindAI.Models.FlightModels
+{
+    public class FlightSegment
+    {
+        public string DepartureAirportName { get; set; } = string.Empty;
+
+        public string DepartureAirportCode { get; set; } = string.Empty;
+
+        public string ArrivalAirportName { get; set; } = string.Empty;
+
+        public string ArrivalAirportCode { get; set; } = string.Empty;
+
+        public DateTime? DepartureDateTime { get; set; }
+
+        public DateTime? ArrivalDateTime { get; set; }
+
+        public string Airline { get; set; } = string.Empty;
+
+        public string? AirlineLogoUrl { get; set; }
+
+        public string FlightNumber { get; set; } = string.Empty;
+
+        public string? Aircraft { get; set; }
+
+        public int DurationMinutes { get; set; }
+
+        public string DurationText { get; set; } = string.Empty;
+    }
+}
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+namespace BtkTripMindAI.Models.FlightModels
+{
+    public class FlightOption
+    {
+        public DateTime? DepartureDateTime { get; set; }
+
+        public DateTime? ArrivalDateTime { get; set; }
+
+        public int DurationMinutes { get; set; }
+
+        public string DurationText { get; set; } = string.Empty;
+
+        public decimal Price { get; set; }
+
+        public string Currency { get; set; } = "TRY";
+
+        public int Stops { get; set; }
+
+        public bool IsDirect => Stops == 0;
+
+        public bool SelfTransfer { get; set; }
+
+        public int? CarryOnBagCount { get; set; }
+
+        public int? CheckedBagCount { get; set; }
+
+        public string? AirlineLogoUrl { get; set; }
+
+        public string? BookingToken { get; set; }
+
+        public List<FlightSegment> Segments { get; set; } = new();
+    }
+}
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+namespace BtkTripMindAI.Models.FlightModels
+{
+    public class FlightResult
+    {
+        public bool IsSuccess { get; set; }
+
+        public string? ErrorMessage { get; set; }
+
+        public string DepartureAirportCode { get; set; } = string.Empty;
+
+        public string ArrivalAirportCode { get; set; } = string.Empty;
+
+        public DateTime DepartureDate { get; set; }
+
+        public string Currency { get; set; } = "TRY";
+
+        public decimal? CurrentPrice { get; set; }
+
+        public List<FlightOption> TopFlights { get; set; } = new();
+
+        public List<FlightOption> OtherFlights { get; set; } = new();
+    }
+}
+
+-------------------------------------------------------------------------------------------------------------------
+
+  Task<FlightResult> SearchFlightsAsync(
+            string departureAirportCode,
+            string arrivalAirportCode,
+            DateTime departureDate,
+            int adultCount,
+            int childCount);
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+"RapidApiFlight": {
+  "ApiKey": "",
+  "Host": "google-flights2.p.rapidapi.com"
+}
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+ private readonly HttpClient _httpClient;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<RapidApiFlightService> _logger;
+
+    public RapidApiFlightService(
+        HttpClient httpClient,
+        IConfiguration configuration,
+        ILogger<RapidApiFlightService> logger)
+    {
+        _httpClient = httpClient;
+        _configuration = configuration;
+        _logger = logger;
+    }
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+using BtkTripMindAI.Dtos.FlightDtos;
+using BtkTripMindAI.Models.FlightModels;
+using System.Globalization;
+using System.Net.Http.Headers;
+using System.Text.Json;
+
+namespace BtkTripMindAI.Services.FlightServices
+{
+    public class RapidApiFlightService : IFlightService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<RapidApiFlightService> _logger;
+
+        public RapidApiFlightService(
+            HttpClient httpClient,
+            IConfiguration configuration,
+            ILogger<RapidApiFlightService> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        public async Task<FlightResult> SearchFlightsAsync(
+            string departureAirportCode,
+            string arrivalAirportCode,
+            DateTime departureDate,
+            int adultCount,
+            int childCount)
+        {
+            if (string.IsNullOrWhiteSpace(departureAirportCode))
+            {
+                return CreateFailureResult(
+                    "Kalkış havalimanı kodu gereklidir.");
+            }
+
+            if (string.IsNullOrWhiteSpace(arrivalAirportCode))
+            {
+                return CreateFailureResult(
+                    "Varış havalimanı kodu gereklidir.");
+            }
+
+            if (departureDate.Date < DateTime.Today)
+            {
+                return CreateFailureResult(
+                    "Geçmiş bir tarih için uçuş aranamaz.");
+            }
+
+            if (adultCount <= 0)
+            {
+                adultCount = 1;
+            }
+
+            if (childCount < 0)
+            {
+                childCount = 0;
+            }
+
+            string? apiKey =
+                _configuration["RapidApiFlight:ApiKey"];
+
+            string host =
+                _configuration["RapidApiFlight:Host"]
+                ?? "google-flights2.p.rapidapi.com";
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                return CreateFailureResult(
+                    "RapidAPI Flight API anahtarı bulunamadı.");
+            }
+
+            string departureCode =
+                departureAirportCode.Trim().ToUpperInvariant();
+
+            string arrivalCode =
+                arrivalAirportCode.Trim().ToUpperInvariant();
+
+            string formattedDate =
+                departureDate.ToString(
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture);
+
+            string requestUrl =
+                $"https://{host}/api/v1/searchFlights" +
+                $"?departure_id={Uri.EscapeDataString(departureCode)}" +
+                $"&arrival_id={Uri.EscapeDataString(arrivalCode)}" +
+                $"&outbound_date={formattedDate}" +
+                $"&travel_class=ECONOMY" +
+                $"&adults={adultCount}" +
+                $"&show_hidden=1" +
+                $"&currency=TRY" +
+                $"&language_code=tr-TR" +
+                $"&country_code=TR" +
+                $"&search_type=best";
+
+            try
+            {
+                using var request =
+                    new HttpRequestMessage(
+                        HttpMethod.Get,
+                        requestUrl);
+
+                request.Headers.Add(
+                    "x-rapidapi-key",
+                    apiKey);
+
+                request.Headers.Add(
+                    "x-rapidapi-host",
+                    host);
+
+                request.Headers.Accept.Add(
+                    new MediaTypeWithQualityHeaderValue(
+                        "application/json"));
+
+                using HttpResponseMessage response =
+                    await _httpClient.SendAsync(request);
+
+                string responseContent =
+                    await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning(
+                        "Flight API başarısız cevap verdi. " +
+                        "StatusCode: {StatusCode}, Response: {Response}",
+                        response.StatusCode,
+                        responseContent);
+
+                    return CreateFailureResult(
+                        "Uçuş bilgileri alınamadı.");
+                }
+
+                var apiResponse =
+                    JsonSerializer.Deserialize<RapidApiFlightResponseDto>(
+                        responseContent,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                if (apiResponse is null ||
+                    !apiResponse.Status ||
+                    apiResponse.Data?.Itineraries is null)
+                {
+                    return CreateFailureResult(
+                        apiResponse?.Message
+                        ?? "Uçuş servisinden geçerli veri alınamadı.");
+                }
+
+                List<FlightOption> topFlights =
+                    apiResponse.Data.Itineraries.TopFlights
+                        .Select(MapFlightOption)
+                        .Where(x => x.Segments.Count > 0)
+                        .ToList();
+
+                List<FlightOption> otherFlights =
+                    apiResponse.Data.Itineraries.OtherFlights
+                        .Select(MapFlightOption)
+                        .Where(x => x.Segments.Count > 0)
+                        .ToList();
+
+                if (topFlights.Count == 0 &&
+                    otherFlights.Count == 0)
+                {
+                    return CreateFailureResult(
+                        $"{departureCode} ile {arrivalCode} arasında " +
+                        "uygun uçuş bulunamadı.");
+                }
+
+                return new FlightResult
+                {
+                    IsSuccess = true,
+                    DepartureAirportCode = departureCode,
+                    ArrivalAirportCode = arrivalCode,
+                    DepartureDate = departureDate.Date,
+                    Currency = "TRY",
+
+                    CurrentPrice =
+                        apiResponse.Data.PriceHistory?
+                            .Summary?
+                            .Current,
+
+                    TopFlights = topFlights,
+                    OtherFlights = otherFlights
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning(
+                    "Uçuş arama isteği zaman aşımına uğradı. " +
+                    "Departure: {Departure}, Arrival: {Arrival}",
+                    departureCode,
+                    arrivalCode);
+
+                return CreateFailureResult(
+                    "Uçuş arama servisi zaman aşımına uğradı.");
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Uçuş API JSON cevabı ayrıştırılamadı.");
+
+                return CreateFailureResult(
+                    "Uçuş verileri işlenemedi.");
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Uçuş bilgileri alınırken hata oluştu.");
+
+                return CreateFailureResult(
+                    "Uçuş bilgileri alınırken bir hata oluştu.");
+            }
+        }
+
+        private static FlightOption MapFlightOption(
+            RapidApiFlightOptionDto option)
+        {
+            return new FlightOption
+            {
+                DepartureDateTime =
+                    ParseDateTime(option.DepartureTime),
+
+                ArrivalDateTime =
+                    ParseDateTime(option.ArrivalTime),
+
+                DurationMinutes =
+                    option.Duration?.Raw ?? 0,
+
+                DurationText =
+                    option.Duration?.Text ?? string.Empty,
+
+                Price = option.Price,
+                Currency = "TRY",
+                Stops = option.Stops,
+                SelfTransfer = option.SelfTransfer,
+
+                CarryOnBagCount =
+                    option.Bags?.CarryOn,
+
+                CheckedBagCount =
+                    option.Bags?.Checked,
+
+                AirlineLogoUrl =
+                    option.AirlineLogo,
+
+                BookingToken =
+                    option.BookingToken,
+
+                Segments =
+                    option.Flights
+                        .Select(MapFlightSegment)
+                        .ToList()
+            };
+        }
+
+        private static FlightSegment MapFlightSegment(
+            RapidApiFlightSegmentDto segment)
+        {
+            return new FlightSegment
+            {
+                DepartureAirportName =
+                    segment.DepartureAirport?
+                        .AirportName ?? string.Empty,
+
+                DepartureAirportCode =
+                    segment.DepartureAirport?
+                        .AirportCode ?? string.Empty,
+
+                ArrivalAirportName =
+                    segment.ArrivalAirport?
+                        .AirportName ?? string.Empty,
+
+                ArrivalAirportCode =
+                    segment.ArrivalAirport?
+                        .AirportCode ?? string.Empty,
+
+                DepartureDateTime =
+                    ParseDateTime(
+                        segment.DepartureAirport?.Time),
+
+                ArrivalDateTime =
+                    ParseDateTime(
+                        segment.ArrivalAirport?.Time),
+
+                Airline =
+                    segment.Airline ?? string.Empty,
+
+                AirlineLogoUrl =
+                    segment.AirlineLogo,
+
+                FlightNumber =
+                    segment.FlightNumber ?? string.Empty,
+
+                Aircraft =
+                    segment.Aircraft,
+
+                DurationMinutes =
+                    segment.Duration?.Raw ?? 0,
+
+                DurationText =
+                    segment.Duration?.Text ?? string.Empty
+            };
+        }
+
+        private static DateTime? ParseDateTime(
+            string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            string[] formats =
+            {
+                "dd-MM-yyyy hh:mm tt",
+                "d-M-yyyy hh:mm tt",
+                "yyyy-M-d HH:mm",
+                "yyyy-MM-dd HH:mm"
+            };
+
+            if (DateTime.TryParseExact(
+                    value.Trim(),
+                    formats,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out DateTime parsedDate))
+            {
+                return parsedDate;
+            }
+
+            if (DateTime.TryParse(
+                    value,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out parsedDate))
+            {
+                return parsedDate;
+            }
+
+            return null;
+        }
+
+        private static FlightResult CreateFailureResult(
+            string errorMessage)
+        {
+            return new FlightResult
+            {
+                IsSuccess = false,
+                ErrorMessage = errorMessage,
+                Currency = "TRY"
+            };
+        }
+    }
+}
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+   public bool Found { get; set; }
+
+        public string? DepartureCity { get; set; }
+
+        public string? DepartureAirportCode { get; set; }
+
+        public string? ArrivalCity { get; set; }
+
+        public string? ArrivalAirportCode { get; set; }
+
+        public DateTime? DepartureDate { get; set; }
+
+        public DateTime? ReturnDate { get; set; }
+
+        public int AdultCount { get; set; } = 1;
+
+        public int ChildCount { get; set; }
+
+        public string TravelClass { get; set; } = "ECONOMY";
+
+        public bool IsRoundTrip { get; set; }
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+ public bool Found { get; set; }
+
+        public string? DepartureLocation { get; set; }
+
+        public string? ArrivalLocation { get; set; }
+
+        public DateTime? DepartureDate { get; set; }
+
+        public DateTime? ReturnDate { get; set; }
+
+        public int AdultCount { get; set; } = 1;
+
+        public int ChildCount { get; set; }
+
+        public string TravelClass { get; set; } = "ECONOMY";
+
+        public bool IsRoundTrip { get; set; }
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+using BtkTripMindAI.Agent.Models;
+using System.Globalization;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+
+namespace BtkTripMindAI.Agent.Extractors
+{
+    public class OpenAIFlightSearchExtractor
+        : IFlightSearchExtractor
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<OpenAIFlightSearchExtractor> _logger;
+
+        public OpenAIFlightSearchExtractor(
+            HttpClient httpClient,
+            IConfiguration configuration,
+            ILogger<OpenAIFlightSearchExtractor> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        public async Task<FlightSearchExtractionResult> ExtractAsync(
+            string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return EmptyResult();
+            }
+
+            string? apiKey =
+                _configuration["OpenAI:ApiKey"];
+
+            string model =
+                _configuration["OpenAI:Model"]
+                ?? "gpt-5-mini";
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException(
+                    "OpenAI API anahtarı bulunamadı.");
+            }
+
+            string currentDate =
+                DateTime.Now.ToString(
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture);
+
+            var requestBody = new
+            {
+                model,
+
+                instructions =
+                    $$"""
+                    Sen BtkTripMindAI isimli seyahat uygulamasında
+                    kullanıcının mesajından uçuş arama bilgilerini
+                    çıkaran veri ayrıştırma aracısın.
+
+                    Bugünün tarihi:
+                    {{currentDate}}
+
+                    Kullanıcının mesajından şu alanları çıkar:
+
+                    - Kalkış şehri veya havalimanı
+                    - Varış şehri veya havalimanı
+                    - Gidiş tarihi
+                    - Dönüş tarihi
+                    - Yetişkin sayısı
+                    - Çocuk sayısı
+                    - Uçuş sınıfı
+                    - Tek yön veya gidiş-dönüş bilgisi
+
+                    Kurallar:
+
+                    - Sonuç yalnızca geçerli JSON olmalıdır.
+                    - Açıklama veya markdown ekleme.
+                    - Kalkış ve varış noktalarını kullanıcının ifade
+                      ettiği biçime yakın şekilde döndür.
+                    - IATA kodu üretme veya tahmin etme.
+                    - Kullanıcı havalimanı adı verdiyse havalimanı adını,
+                      şehir verdiyse şehir adını döndür.
+                    - Tarihleri yyyy-MM-dd biçiminde döndür.
+                    - Kullanıcı yıl belirtmediyse bugünden sonraki en
+                      yakın uygun tarihi kullan.
+                    - Kullanıcı yetişkin sayısını belirtmediyse 1 döndür.
+                    - Kullanıcı çocuk belirtmediyse 0 döndür.
+                    - "Eşimle" veya "eşim ve ben" ifadesi 2 yetişkin
+                      anlamına gelir.
+                    - Uçuş sınıfı yalnızca şu değerlerden biri olmalıdır:
+                      ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST.
+                    - Ekonomik veya ekonomi ifadelerinde ECONOMY döndür.
+                    - Business veya iş sınıfında BUSINESS döndür.
+                    - Birinci sınıf ifadelerinde FIRST döndür.
+                    - Dönüş tarihi varsa isRoundTrip true olmalıdır.
+                    - Dönüş tarihi yoksa isRoundTrip false olmalıdır.
+                    - Kalkış, varış veya gidiş tarihi güvenilir şekilde
+                      belirlenemiyorsa found false döndür.
+                    - Rastgele şehir, havalimanı veya tarih üretme.
+
+                    Başarılı JSON örneği:
+
+                    {
+                      "found": true,
+                      "departureLocation": "Sabiha Gökçen",
+                      "arrivalLocation": "Esenboğa",
+                      "departureDate": "2026-08-05",
+                      "returnDate": null,
+                      "adultCount": 2,
+                      "childCount": 0,
+                      "travelClass": "ECONOMY",
+                      "isRoundTrip": false
+                    }
+
+                    Gidiş-dönüş örneği:
+
+                    {
+                      "found": true,
+                      "departureLocation": "İstanbul",
+                      "arrivalLocation": "Roma",
+                      "departureDate": "2026-09-10",
+                      "returnDate": "2026-09-14",
+                      "adultCount": 2,
+                      "childCount": 1,
+                      "travelClass": "ECONOMY",
+                      "isRoundTrip": true
+                    }
+
+                    Bilgi eksikse:
+
+                    {
+                      "found": false,
+                      "departureLocation": null,
+                      "arrivalLocation": null,
+                      "departureDate": null,
+                      "returnDate": null,
+                      "adultCount": 1,
+                      "childCount": 0,
+                      "travelClass": "ECONOMY",
+                      "isRoundTrip": false
+                    }
+                    """,
+
+                input = message
+            };
+
+            string requestJson =
+                JsonSerializer.Serialize(requestBody);
+
+            using var request =
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    "https://api.openai.com/v1/responses");
+
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    apiKey);
+
+            request.Content =
+                new StringContent(
+                    requestJson,
+                    Encoding.UTF8,
+                    "application/json");
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await _httpClient.SendAsync(request);
+
+                string responseContent =
+                    await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError(
+                        "OpenAI uçuş arama bilgisi çıkarma isteği başarısız. " +
+                        "StatusCode: {StatusCode}, Response: {Response}",
+                        response.StatusCode,
+                        responseContent);
+
+                    return EmptyResult();
+                }
+
+                string? outputText =
+                    GetOutputText(responseContent);
+
+                if (string.IsNullOrWhiteSpace(outputText))
+                {
+                    return EmptyResult();
+                }
+
+                FlightSearchExtractionResult? result =
+                    JsonSerializer.Deserialize<FlightSearchExtractionResult>(
+                        outputText,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                return NormalizeResult(result);
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Uçuş arama bilgisi JSON cevabı ayrıştırılamadı.");
+
+                return EmptyResult();
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Uçuş arama bilgileri çıkarılırken hata oluştu.");
+
+                return EmptyResult();
+            }
+        }
+
+        private static FlightSearchExtractionResult NormalizeResult(
+            FlightSearchExtractionResult? result)
+        {
+            if (result is null ||
+                !result.Found ||
+                string.IsNullOrWhiteSpace(result.DepartureLocation) ||
+                string.IsNullOrWhiteSpace(result.ArrivalLocation) ||
+                result.DepartureDate is null)
+            {
+                return EmptyResult();
+            }
+
+            result.DepartureLocation =
+                result.DepartureLocation.Trim();
+
+            result.ArrivalLocation =
+                result.ArrivalLocation.Trim();
+
+            if (result.AdultCount <= 0)
+            {
+                result.AdultCount = 1;
+            }
+
+            if (result.ChildCount < 0)
+            {
+                result.ChildCount = 0;
+            }
+
+            result.TravelClass =
+                result.TravelClass?.Trim().ToUpperInvariant() switch
+                {
+                    "PREMIUM_ECONOMY" => "PREMIUM_ECONOMY",
+                    "BUSINESS" => "BUSINESS",
+                    "FIRST" => "FIRST",
+                    _ => "ECONOMY"
+                };
+
+            if (result.ReturnDate is not null &&
+                result.ReturnDate <= result.DepartureDate)
+            {
+                result.ReturnDate = null;
+                result.IsRoundTrip = false;
+            }
+            else
+            {
+                result.IsRoundTrip =
+                    result.ReturnDate is not null;
+            }
+
+            return result;
+        }
+
+        private static string? GetOutputText(
+            string responseContent)
+        {
+            using JsonDocument document =
+                JsonDocument.Parse(responseContent);
+
+            JsonElement root =
+                document.RootElement;
+
+            if (root.TryGetProperty(
+                    "output_text",
+                    out JsonElement outputTextElement))
+            {
+                return outputTextElement.GetString();
+            }
+
+            if (!root.TryGetProperty(
+                    "output",
+                    out JsonElement outputElement) ||
+                outputElement.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            foreach (JsonElement outputItem
+                     in outputElement.EnumerateArray())
+            {
+                if (!outputItem.TryGetProperty(
+                        "content",
+                        out JsonElement contentElement) ||
+                    contentElement.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (JsonElement contentItem
+                         in contentElement.EnumerateArray())
+                {
+                    if (contentItem.TryGetProperty(
+                            "text",
+                            out JsonElement textElement))
+                    {
+                        return textElement.GetString();
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static FlightSearchExtractionResult EmptyResult()
+        {
+            return new FlightSearchExtractionResult
+            {
+                Found = false,
+                DepartureLocation = null,
+                ArrivalLocation = null,
+                DepartureDate = null,
+                ReturnDate = null,
+                AdultCount = 1,
+                ChildCount = 0,
+                TravelClass = "ECONOMY",
+                IsRoundTrip = false
+            };
+        }
+    }
+}
+
+-------------------------------------------------------------------------------------------------------------------
+
+if (intent == TravelIntent.Flight)
+{
+    var flightDetails =
+        await _flightSearchExtractor.ExtractAsync(prompt);
+
+    if (!flightDetails.Found ||
+        string.IsNullOrWhiteSpace(flightDetails.DepartureLocation) ||
+        string.IsNullOrWhiteSpace(flightDetails.ArrivalLocation) ||
+        flightDetails.DepartureDate is null)
+    {
+        return new AgentResult
+        {
+            IsSuccess = true,
+            Intent = TravelIntent.Flight,
+            ToolName = nameof(OpenAIFlightSearchExtractor),
+            Message =
+                "Uçuş arayabilmem için kalkış noktası, varış noktası " +
+                "ve gidiş tarihini belirtmelisiniz."
+        };
+    }
+
+    var departureAirportResult =
+        await _airportService.SearchAirportsAsync(
+            flightDetails.DepartureLocation);
+
+    if (!departureAirportResult.IsSuccess ||
+        departureAirportResult.BestMatch is null)
+    {
+        return new AgentResult
+        {
+            IsSuccess = false,
+            Intent = TravelIntent.Flight,
+            ToolName = nameof(RapidApiAirportService),
+            Message =
+                $"{flightDetails.DepartureLocation} için uygun " +
+                "kalkış havalimanı bulunamadı."
+        };
+    }
+
+    var arrivalAirportResult =
+        await _airportService.SearchAirportsAsync(
+            flightDetails.ArrivalLocation);
+
+    if (!arrivalAirportResult.IsSuccess ||
+        arrivalAirportResult.BestMatch is null)
+    {
+        return new AgentResult
+        {
+            IsSuccess = false,
+            Intent = TravelIntent.Flight,
+            ToolName = nameof(RapidApiAirportService),
+            Message =
+                $"{flightDetails.ArrivalLocation} için uygun " +
+                "varış havalimanı bulunamadı."
+        };
+    }
+
+    string departureAirportCode =
+        departureAirportResult.BestMatch.IataCode;
+
+    string arrivalAirportCode =
+        arrivalAirportResult.BestMatch.IataCode;
+
+    var flightResult =
+        await _flightService.SearchFlightsAsync(
+            departureAirportCode,
+            arrivalAirportCode,
+            flightDetails.DepartureDate.Value,
+            flightDetails.AdultCount,
+            flightDetails.ChildCount);
+
+    if (!flightResult.IsSuccess)
+    {
+        return new AgentResult
+        {
+            IsSuccess = false,
+            Intent = TravelIntent.Flight,
+            ToolName = nameof(RapidApiFlightService),
+            Message =
+                flightResult.ErrorMessage
+                ?? "Uçuş bilgileri alınamadı."
+        };
+    }
+
+    int totalFlightCount =
+        flightResult.TopFlights.Count +
+        flightResult.OtherFlights.Count;
+
+    return new AgentResult
+    {
+        IsSuccess = true,
+        Intent = TravelIntent.Flight,
+        ToolName = nameof(RapidApiFlightService),
+
+        Message =
+            $"{departureAirportCode} ile {arrivalAirportCode} arasında " +
+            $"{flightDetails.DepartureDate.Value:dd.MM.yyyy} tarihi için " +
+            $"{totalFlightCount} uçuş seçeneği bulundu."
+    };
+}
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+private static decimal GetPrice(JsonElement priceElement)
+{
+    if (priceElement.ValueKind == JsonValueKind.Number)
+    {
+        if (priceElement.TryGetDecimal(out decimal decimalValue))
+        {
+            return decimalValue;
+        }
+
+        if (priceElement.TryGetDouble(out double doubleValue))
+        {
+            if (doubleValue >= 0 &&
+                doubleValue <= (double)decimal.MaxValue)
+            {
+                return Convert.ToDecimal(doubleValue);
+            }
+        }
+    }
+
+    if (priceElement.ValueKind == JsonValueKind.String)
+    {
+        string? value = priceElement.GetString();
+
+        if (decimal.TryParse(
+                value,
+                NumberStyles.Any,
+                CultureInfo.InvariantCulture,
+                out decimal parsedValue))
+        {
+            return parsedValue;
+        }
+    }
+
+    return 0;
+}
+

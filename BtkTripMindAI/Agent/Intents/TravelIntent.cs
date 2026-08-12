@@ -12,6 +12,8 @@
         Flight,
         Transportation,
         Attraction,
-        Budget
+        Budget,
+        Email,
+        Calendar
     }
 }

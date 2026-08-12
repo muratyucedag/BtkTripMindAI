@@ -1,0 +1,680 @@
+﻿<span class="sfield-value">
+    <span id="departureCity">-</span>
+    <span id="departureAirportCode" class="code">-</span>
+</span>
+
+---------------------------------------------------------------------------------------------------------------------------
+
+<span class="sfield-value">
+    <span id="arrivalCity">-</span>
+    <span id="arrivalAirportCode" class="code">-</span>
+</span>
+
+
+---------------------------------------------------------------------------------------------------------------------------
+
+<span id="departureDate" class="sfield-value">-</span>
+
+<span id="passengerInfo" class="sfield-value">-</span>
+
+<span id="travelClass" class="sfield-value">Ekonomi</span>
+
+<h1 id="routeTitle" class="route-title">
+    Uçuş Sonuçları
+</h1>
+
+<p class="route-meta">
+    <span id="routeMeta">-</span>
+
+    <span class="route-count">
+        —
+        <b id="totalFlightCount">0 uçuş</b>
+        bulundu
+    </span>
+</p>
+
+
+---------------------------------------------------------------------------------------------------------------------------
+
+<span class="low">
+    En düşük fiyat:
+    <span id="lowestPrice">-</span>
+</span>
+
+
+---------------------------------------------------------------------------------------------------------------------------
+
+<div id="flightResultsContainer" class="results">
+</div>
+
+
+---------------------------------------------------------------------------------------------------------------------------
+
+if (allFlights.length > 0) {
+    renderFirstFlight(allFlights[0]);
+}
+
+
+---------------------------------------------------------------------------------------------------------------------------
+
+function renderFirstFlight(flight) {
+
+    const container =
+        document.getElementById("flightResultsContainer");
+
+    if (!container || !flight) {
+        return;
+    }
+
+    const segments =
+        Array.isArray(flight.segments)
+            ? flight.segments
+            : [];
+
+    if (segments.length === 0) {
+        return;
+    }
+
+    const firstSegment = segments[0];
+    const lastSegment = segments[segments.length - 1];
+
+    const airline =
+        firstSegment.airline || "Havayolu";
+
+    const flightNumber =
+        firstSegment.flightNumber || "-";
+
+    const airlineLogo =
+        firstSegment.airlineLogoUrl ||
+        flight.airlineLogoUrl ||
+        "";
+
+    const departureCode =
+        firstSegment.departureAirportCode || "-";
+
+    const arrivalCode =
+        lastSegment.arrivalAirportCode || "-";
+
+    const departureAirport =
+        firstSegment.departureAirportName || departureCode;
+
+    const arrivalAirport =
+        lastSegment.arrivalAirportName || arrivalCode;
+
+    const departureTime =
+        formatFlightTime(
+            flight.departureDateTime ||
+            firstSegment.departureDateTime
+        );
+
+    const arrivalTime =
+        formatFlightTime(
+            flight.arrivalDateTime ||
+            lastSegment.arrivalDateTime
+        );
+
+    const durationText =
+        flight.durationText ||
+        formatDuration(flight.durationMinutes);
+
+    const stops =
+        Number(flight.stops || 0);
+
+    const stopText =
+        stops === 0
+            ? "Direkt"
+            : `${stops} Aktarma`;
+
+    const aircraft =
+        firstSegment.aircraft ||
+        "Uçak bilgisi belirtilmemiş";
+
+    const baggageText =
+        createBaggageText(flight);
+
+    const price =
+        formatPrice(flight.price || 0);
+
+    container.innerHTML = `
+        <article class="flight best">
+
+            <div class="badge-row">
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <path d="M12 2 15 8.5 22 9.5 17 14.5 18.5 21.5 12 18 5.5 21.5 7 14.5 2 9.5 9 8.5z" />
+                </svg>
+
+                En İyi Seçenek
+            </div>
+
+            <div class="flight-body">
+
+                <div class="flight-main">
+
+                    <div class="flight-top">
+
+                        <div class="airline">
+
+                            ${
+                                airlineLogo
+                                    ? `
+                                        <img src="${airlineLogo}"
+                                             alt="${escapeHtml(airline)}"
+                                             style="width:42px;height:42px;object-fit:contain;">
+                                      `
+                                    : `
+                                        <div class="airline-logo">
+                                            ${getAirlineInitials(airline)}
+                                        </div>
+                                      `
+                            }
+
+                            <div>
+                                <div class="airline-name">
+                                    ${escapeHtml(airline)}
+                                </div>
+
+                                <div class="airline-flno">
+                                    ${escapeHtml(flightNumber)}
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="timeline">
+
+                            <div class="tl-point">
+
+                                <div class="tl-time">
+                                    ${departureTime}
+                                </div>
+
+                                <div class="tl-code">
+                                    ${escapeHtml(departureCode)}
+                                </div>
+
+                                <div class="tl-city">
+                                    ${escapeHtml(departureAirport)}
+                                </div>
+
+                            </div>
+
+                            <div class="tl-mid">
+
+                                <div class="tl-dur">
+                                    ${escapeHtml(durationText)}
+                                </div>
+
+                                <div class="tl-line">
+                                    <span class="tl-plane">
+                                        ✈
+                                    </span>
+                                </div>
+
+                                <div class="tl-stops ${stops > 0 ? "has-stop" : ""}">
+                                    ${stopText}
+                                </div>
+
+                            </div>
+
+                            <div class="tl-point">
+
+                                <div class="tl-time">
+                                    ${arrivalTime}
+                                </div>
+
+                                <div class="tl-code">
+                                    ${escapeHtml(arrivalCode)}
+                                </div>
+
+                                <div class="tl-city">
+                                    ${escapeHtml(arrivalAirport)}
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="flight-meta">
+
+                        <span class="${stops === 0 ? "ok" : ""}">
+                            ${stops === 0
+                                ? "Direkt uçuş"
+                                : `${stops} aktarma`}
+                        </span>
+
+                        <span>
+                            ${escapeHtml(baggageText)}
+                        </span>
+
+                        <span>
+                            Ekonomi
+                        </span>
+
+                        <span>
+                            ${escapeHtml(aircraft)}
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="price-col">
+
+                    <div class="price-amt">
+                        ${price}
+                    </div>
+
+                    <div class="price-per">
+                        kişi başı
+                    </div>
+
+                    <button class="select-btn">
+                        Uçuşu Seç →
+                    </button>
+
+                    <a href="#" class="detail-link">
+                        Detayları Gör
+                    </a>
+
+                </div>
+
+            </div>
+
+        </article>
+    `;
+}
+
+
+---------------------------------------------------------------------------------------------------------------------------
+
+function formatFlightTime(dateValue) {
+
+    if (!dateValue)
+        return "--:--";
+
+    const date = new Date(dateValue);
+
+    return new Intl.DateTimeFormat(
+        "tr-TR",
+        {
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    ).format(date);
+}
+
+
+function formatDuration(minutes) {
+
+    const value = Number(minutes) || 0;
+
+    if (value <= 0)
+        return "-";
+
+    const hours = Math.floor(value / 60);
+    const remainingMinutes = value % 60;
+
+    if (hours === 0)
+        return `${remainingMinutes} dk`;
+
+    return `${hours} sa ${remainingMinutes} dk`;
+}
+
+
+function createBaggageText(flight) {
+
+    const carryOn =
+        flight.carryOnBagCount;
+
+    const checked =
+        flight.checkedBagCount;
+
+    if (carryOn > 0 && checked > 0) {
+        return `${carryOn} kabin + ${checked} kayıtlı bagaj`;
+    }
+
+    if (carryOn > 0) {
+        return `${carryOn} kabin bagajı`;
+    }
+
+    if (checked > 0) {
+        return `${checked} kayıtlı bagaj`;
+    }
+
+    return "Bagaj bilgisi belirtilmemiş";
+}
+
+
+function getAirlineInitials(airline) {
+
+    if (!airline)
+        return "✈";
+
+    return airline
+        .split(" ")
+        .filter(x => x)
+        .slice(0, 2)
+        .map(x => x[0])
+        .join("")
+        .toUpperCase();
+}
+
+
+function escapeHtml(value) {
+
+    if (!value)
+        return "";
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+---------------------------------------------------------------------------------------------------------------------------
+
+function renderFlights(flights) {
+
+    const container =
+        document.getElementById("flightResultsContainer");
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = "";
+
+    flights.forEach(function (flight, index) {
+
+        const segments =
+            Array.isArray(flight.segments)
+                ? flight.segments
+                : [];
+
+        if (segments.length === 0) {
+            return;
+        }
+
+        const firstSegment =
+            segments[0];
+
+        const lastSegment =
+            segments[segments.length - 1];
+
+        const airline =
+            firstSegment.airline || "Havayolu";
+
+        const flightNumber =
+            firstSegment.flightNumber || "-";
+
+        const airlineLogo =
+            firstSegment.airlineLogoUrl ||
+            flight.airlineLogoUrl ||
+            "";
+
+        const departureCode =
+            firstSegment.departureAirportCode || "-";
+
+        const arrivalCode =
+            lastSegment.arrivalAirportCode || "-";
+
+        const departureAirport =
+            firstSegment.departureAirportName ||
+            departureCode;
+
+        const arrivalAirport =
+            lastSegment.arrivalAirportName ||
+            arrivalCode;
+
+        const departureTime =
+            formatFlightTime(
+                flight.departureDateTime ||
+                firstSegment.departureDateTime
+            );
+
+        const arrivalTime =
+            formatFlightTime(
+                flight.arrivalDateTime ||
+                lastSegment.arrivalDateTime
+            );
+
+        const durationText =
+            flight.durationText ||
+            formatDuration(flight.durationMinutes);
+
+        const stops =
+            Number(flight.stops || 0);
+
+        const stopText =
+            stops === 0
+                ? "Direkt"
+                : `${stops} Aktarma`;
+
+        const aircraft =
+            firstSegment.aircraft ||
+            "Uçak bilgisi belirtilmemiş";
+
+        const baggageText =
+            createBaggageText(flight);
+
+        const price =
+            formatPrice(flight.price || 0);
+
+        const cardHtml = `
+            <article class="flight ${index === 0 ? "best" : ""}">
+
+                ${
+                    index === 0
+                        ? `
+                            <div class="badge-row">
+                                <svg viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <path d="M12 2 15 8.5 22 9.5 17 14.5 18.5 21.5 12 18 5.5 21.5 7 14.5 2 9.5 9 8.5z" />
+                                </svg>
+                                En İyi Seçenek
+                            </div>
+                          `
+                        : ""
+                }
+
+                <div class="flight-body">
+
+                    <div class="flight-main">
+
+                        <div class="flight-top">
+
+                            <div class="airline">
+
+                                ${
+                                    airlineLogo
+                                        ? `
+                                            <img src="${airlineLogo}"
+                                                 alt="${escapeHtml(airline)}"
+                                                 style="width:42px;height:42px;object-fit:contain;">
+                                          `
+                                        : `
+                                            <div class="airline-logo"
+                                                 style="background:#2563a8;">
+                                                ${getAirlineInitials(airline)}
+                                            </div>
+                                          `
+                                }
+
+                                <div>
+                                    <div class="airline-name">
+                                        ${escapeHtml(airline)}
+                                    </div>
+
+                                    <div class="airline-flno">
+                                        ${escapeHtml(flightNumber)}
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="timeline">
+
+                                <div class="tl-point">
+
+                                    <div class="tl-time">
+                                        ${departureTime}
+                                    </div>
+
+                                    <div class="tl-code">
+                                        ${escapeHtml(departureCode)}
+                                    </div>
+
+                                    <div class="tl-city">
+                                        ${escapeHtml(departureAirport)}
+                                    </div>
+
+                                </div>
+
+                                <div class="tl-mid">
+
+                                    <div class="tl-dur">
+                                        ${escapeHtml(durationText)}
+                                    </div>
+
+                                    <div class="tl-line">
+                                        <span class="tl-plane">
+                                            ✈
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-stops ${stops > 0 ? "has-stop" : ""}">
+                                        ${stopText}
+                                    </div>
+
+                                </div>
+
+                                <div class="tl-point">
+
+                                    <div class="tl-time">
+                                        ${arrivalTime}
+                                    </div>
+
+                                    <div class="tl-code">
+                                        ${escapeHtml(arrivalCode)}
+                                    </div>
+
+                                    <div class="tl-city">
+                                        ${escapeHtml(arrivalAirport)}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="flight-meta">
+
+                            <span class="${stops === 0 ? "ok" : ""}">
+                                ${
+                                    stops === 0
+                                        ? "Direkt uçuş"
+                                        : `${stops} aktarma`
+                                }
+                            </span>
+
+                            <span>
+                                ${escapeHtml(baggageText)}
+                            </span>
+
+                            <span>
+                                Ekonomi
+                            </span>
+
+                            <span>
+                                ${escapeHtml(aircraft)}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                    <div class="price-col">
+
+                        <div class="price-amt">
+                            ${price}
+                        </div>
+
+                        <div class="price-per">
+                            kişi başı
+                        </div>
+
+                        <button class="select-btn"
+                                data-booking-token="${escapeHtml(flight.bookingToken || "")}">
+                            Uçuşu Seç →
+                        </button>
+
+                        <a href="#"
+                           class="detail-link"
+                           data-flight-index="${index}">
+                            Detayları Gör
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </article>
+        `;
+
+        container.insertAdjacentHTML(
+            "beforeend",
+            cardHtml
+        );
+    });
+}
+
+
+---------------------------------------------------------------------------------------------------------------------------
+
+private static string NormalizeAirportQuery(string query)
+{
+    string normalizedQuery = query.Trim();
+
+    string[] removableWords =
+    {
+        " Uluslararası Havalimanı",
+        " Uluslararası Havaalanı",
+        " International Airport",
+        " Havalimanı",
+        " Havaalanı",
+        " Airport"
+    };
+
+    foreach (string word in removableWords)
+    {
+        normalizedQuery = normalizedQuery.Replace(
+            word,
+            "",
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    return normalizedQuery.Trim();
+}
+
+
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------

@@ -1,0 +1,595 @@
+﻿"EmailSettings": {
+  "Host": "smtp.gmail.com",
+  "Port": 587,
+  "UserName": "mailadresiniz@gmail.com",
+  "Password": "uygulama-sifresi",
+  "FromEmail": "mailadresiniz@gmail.com",
+  "FromName": "BtkTripMindAI"
+}
+--------------------------------------------------------------------------------------------------------
+
+using BtkTripMindAI.Dtos.EmailDtos;
+using BtkTripMindAI.Models.EmailModels;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using Microsoft.Extensions.Options;
+using MimeKit;
+
+namespace BtkTripMindAI.Services.EmailServices
+{
+    public class MailKitEmailService : IEmailService
+    {
+       emailSettings.Password,
+                    cancellationToken);
+
+                await private readonly EmailSettings _emailSettings;
+        private readonly ILogger<MailKitEmailService> _logger;
+
+        public MailKitEmailService(
+            IOptions<EmailSettings> emailOptions,
+            ILogger<MailKitEmailService> logger)
+        {
+            _emailSettings = emailOptions.Value;
+            _logger = logger;
+        }
+
+        public async Task<bool> SendEmailAsync(
+            SendEmailRequestDto request,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(request.ToEmail))
+            {
+                return false;
+            }
+
+            var message = new MimeMessage();
+
+            message.From.Add(
+                new MailboxAddress(
+                    _emailSettings.FromName,
+                    _emailSettings.FromEmail));
+
+            message.To.Add(
+                MailboxAddress.Parse(request.ToEmail));
+
+            message.Subject = request.Subject;
+
+            var bodyBuilder = new BodyBuilder();
+
+            if (request.IsHtml)
+            {
+                bodyBuilder.HtmlBody = request.Body;
+            }
+            else
+            {
+                bodyBuilder.TextBody = request.Body;
+            }
+
+            message.Body = bodyBuilder.ToMessageBody();
+
+            try
+            {
+                using var smtpClient = new SmtpClient();
+
+                await smtpClient.ConnectAsync(
+                    _emailSettings.Host,
+                    _emailSettings.Port,
+                    SecureSocketOptions.StartTls,
+                    cancellationToken);
+
+                await smtpClient.AuthenticateAsync(
+                    _emailSettings.UserName,
+                    _ smtpClient.SendAsync(
+                    message,
+                    cancellationToken);
+
+                await smtpClient.DisconnectAsync(
+                    true,
+                    cancellationToken);
+
+                return true;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "E-posta gönderilirken hata oluştu. Alıcı: {ToEmail}",
+                    request.ToEmail);
+
+                return false;
+            }
+        }
+    }
+}
+
+
+--------------------------------------------------------------------------------------------------------
+
+[HttpGet]
+public async Task<IActionResult> TestEmail()
+{
+    var emailRequest = new SendEmailRequestDto
+    {
+        ToEmail = "TEST_GONDERILECEK_EMAIL",
+        Subject = "BtkTripMindAI MailKit Testi",
+        Body =
+            """
+            <div style="font-family:Arial;padding:24px">
+                <h2 style="color:#286887">
+                    BtkTripMindAI
+                </h2>
+
+                <p>
+                    MailKit e-posta servisi başarıyla çalışıyor.
+                </p>
+
+                <p>
+                    Bu mesaj ASP.NET Core 9 uygulamasından gönderildi.
+                </p>
+            </div>
+            """,
+        IsHtml = true
+    };
+
+    bool isSent =
+        await _emailService.SendEmailAsync(emailRequest);
+
+    if (!isSent)
+    {
+        return BadRequest(
+            "E-posta gönderilemedi. Log kayıtlarını kontrol edin.");
+    }
+
+    return Ok("E-posta başarıyla gönderildi.");
+}
+
+
+--------------------------------------------------------------------------------------------------------
+
+using BtkTripMindAI.Agent.Models;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+
+namespace BtkTripMindAI.Agent.Extractors
+{
+    public class OpenAIEmailExtractor : IEmailExtractor
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<OpenAIEmailExtractor> _logger;
+
+        public OpenAIEmailExtractor(
+            HttpClient httpClient,
+            IConfiguration configuration,
+            ILogger<OpenAIEmailExtractor> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        public async Task<EmailExtractionResult> ExtractAsync(
+            string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return EmptyResult();
+            }
+
+            string? apiKey =
+                _configuration["OpenAI:ApiKey"];
+
+            string model =
+                _configuration["OpenAI:Model"]
+                ?? "gpt-5-mini";
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException(
+                    "OpenAI API anahtarı bulunamadı.");
+            }
+
+            var requestBody = new
+            {
+                model,
+
+                instructions =
+                    """
+                    Sen bir seyahat uygulamasında kullanıcının mesajından
+                    e-posta adresini çıkaran veri ayrıştırma aracısın.
+
+                    Kurallar:
+                    - Mesajda açıkça yazılmış geçerli bir e-posta adresini bul.
+                    - E-posta adresi yoksa tahmin yapma.
+                    - Kullanıcının kayıtlı veya varsayılan e-posta adresini
+                      bildiğini varsayma.
+                    - Birden fazla e-posta adresi varsa gönderim yapılması
+                      istenen ilk adresi döndür.
+                    - Sonuç yalnızca geçerli JSON olmalıdır.
+                    - Açıklama veya markdown ekleme.
+
+                    E-posta bulunduğunda JSON biçimi:
+
+                    {
+                      "found": true,
+                      "email": "murat@example.com"
+                    }
+
+                    E-posta bulunamadığında:
+
+                    {
+                      "found": false,
+                      "email": null
+                    }
+                    """,
+
+                input = message
+            };
+
+            string requestJson =
+                JsonSerializer.Serialize(requestBody);
+
+            using var request =
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    "https://api.openai.com/v1/responses");
+
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    apiKey);
+
+            request.Content =
+                new StringContent(
+                    requestJson,
+                    Encoding.UTF8,
+                    "application/json");
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await _httpClient.SendAsync(request);
+
+                string responseContent =
+                    await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError(
+                        "OpenAI e-posta çıkarma isteği başarısız. " +
+                        "StatusCode: {StatusCode}, Response: {Response}",
+                        response.StatusCode,
+                        responseContent);
+
+                    return EmptyResult();
+                }
+
+                string? outputText =
+                    GetOutputText(responseContent);
+
+                if (string.IsNullOrWhiteSpace(outputText))
+                {
+                    return EmptyResult();
+                }
+
+                EmailExtractionResult? result =
+                    JsonSerializer.Deserialize<EmailExtractionResult>(
+                        outputText,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                if (result is null ||
+                    !result.Found ||
+                    string.IsNullOrWhiteSpace(result.Email))
+                {
+                    return EmptyResult();
+                }
+
+                result.Email = result.Email.Trim();
+
+                return result;
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "E-posta çıkarma JSON cevabı ayrıştırılamadı.");
+
+                return EmptyResult();
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "E-posta adresi çıkarılırken hata oluştu.");
+
+                return EmptyResult();
+            }
+        }
+
+        private static string? GetOutputText(
+            string responseContent)
+        {
+            using JsonDocument document =
+                JsonDocument.Parse(responseContent);
+
+            JsonElement root =
+                document.RootElement;
+
+            if (root.TryGetProperty(
+                    "output_text",
+                    out JsonElement outputTextElement))
+            {
+                return outputTextElement.GetString();
+            }
+
+            if (!root.TryGetProperty(
+                    "output",
+                    out JsonElement outputElement) ||
+                outputElement.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            foreach (JsonElement outputItem
+                     in outputElement.EnumerateArray())
+            {
+                if (!outputItem.TryGetProperty(
+                        "content",
+                        out JsonElement contentElement) ||
+                    contentElement.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (JsonElement contentItem
+                         in contentElement.EnumerateArray())
+                {
+                    if (contentItem.TryGetProperty(
+                            "text",
+                            out JsonElement textElement))
+                    {
+                        return textElement.GetString();
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static EmailExtractionResult EmptyResult()
+        {
+            return new EmailExtractionResult
+            {
+                Found = false,
+                Email = null
+            };
+        }
+    }
+}
+
+
+--------------------------------------------------------------------------------------------------------
+
+if (intent == TravelIntent.Email)
+{
+    var emailResult =
+        await _emailExtractor.ExtractAsync(prompt);
+
+    if (!emailResult.Found ||
+        string.IsNullOrWhiteSpace(emailResult.Email))
+    {
+        return new AgentResult
+        {
+            IsSuccess = true,
+            Intent = TravelIntent.Email,
+            ToolName = nameof(OpenAIEmailExtractor),
+            City = city,
+            Country = country,
+            Message =
+                "Seyahat bilgilerinizi e-posta ile gönderebilirim. " +
+                "Lütfen gönderilecek e-posta adresini mesajınızda belirtin."
+        };
+    }
+
+    return new AgentResult
+    {
+        IsSuccess = true,
+        Intent = TravelIntent.Email,
+        ToolName = nameof(OpenAIEmailExtractor),
+        City = city,
+        Country = country,
+        Message =
+            $"E-posta adresi başarıyla algılandı: " +
+            $"{emailResult.Email}"
+    };
+}
+
+
+--------------------------------------------------------------------------------------------------------
+
+if (intent == TravelIntent.Email)
+{
+    var emailResult =
+        await _emailExtractor.ExtractAsync(prompt);
+
+    if (!emailResult.Found ||
+        string.IsNullOrWhiteSpace(emailResult.Email))
+    {
+        return new AgentResult
+        {
+            IsSuccess = true,
+            Intent = TravelIntent.Email,
+            ToolName = nameof(OpenAIEmailExtractor),
+            City = city,
+            Country = country,
+            Message =
+                "E-posta gönderebilirim. " +
+                "Lütfen gönderilecek e-posta adresini mesajınızda belirtin."
+        };
+    }
+
+    string subject =
+        string.IsNullOrWhiteSpace(city)
+            ? "BtkTripMindAI Seyahat Bilgilendirmesi"
+            : $"{city} Seyahat Bilgilendirmesi";
+
+    string body = CreateEmailBody(
+        city,
+        country,
+        travelDetails.DayCount,
+        travelDetails.AdultCount,
+        travelDetails.ChildCount,
+        travelDetails.BudgetLevel);
+
+    var emailRequest =
+        new SendEmailRequestDto
+        {
+            ToEmail = emailResult.Email,
+            Subject = subject,
+            Body = body,
+            IsHtml = true
+        };
+
+    bool isSent =
+        await _emailService.SendEmailAsync(
+            emailRequest);
+
+    if (!isSent)
+    {
+        return new AgentResult
+        {
+            IsSuccess = false,
+            Intent = TravelIntent.Email,
+            ToolName = nameof(MailKitEmailService),
+            City = city,
+            Country = country,
+            Message =
+                "E-posta gönderilemedi. " +
+                "Lütfen e-posta ayarlarını ve SMTP bağlantısını kontrol edin."
+        };
+    }
+
+    return new AgentResult
+    {
+        IsSuccess = true,
+        Intent = TravelIntent.Email,
+        ToolName = nameof(MailKitEmailService),
+        City = city,
+        Country = country,
+        Message =
+            $"Seyahat bilgileri {emailResult.Email} " +
+            "adresine başarıyla gönderildi."
+    };
+}
+
+--------------------------------------------------------------------------------------------------------
+
+private static string CreateEmailBody(
+    string? city,
+    string? country,
+    int dayCount,
+    int adultCount,
+    int childCount,
+    string? budgetLevel)
+{
+    string destination =
+        string.IsNullOrWhiteSpace(city)
+            ? "Seyahat planınız"
+            : string.IsNullOrWhiteSpace(country)
+                ? city
+                : $"{city}, {country}";
+
+    string budgetLevelText =
+        budgetLevel switch
+        {
+            "Economy" => "Ekonomik",
+            "Luxury" => "Lüks",
+            _ => "Orta Segment"
+        };
+
+    return $$"""
+        <!DOCTYPE html>
+        <html lang="tr">
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="margin:0;background:#f6f8fb;font-family:Arial,sans-serif;color:#243447;">
+            <div style="max-width:640px;margin:30px auto;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e5eaf0;">
+
+                <div style="padding:28px;background:#dff1ff;">
+                    <h1 style="margin:0;color:#286887;font-size:26px;">
+                        BtkTripMindAI
+                    </h1>
+
+                    <p style="margin:8px 0 0;color:#526579;">
+                        Yapay Zeka Destekli Seyahat Asistanı
+                    </p>
+                </div>
+
+                <div style="padding:28px;">
+                    <h2 style="margin-top:0;color:#243447;">
+                        {{destination}} Seyahat Özeti
+                    </h2>
+
+                    <p style="line-height:1.7;color:#526579;">
+                        Seyahat talebinize ait temel bilgiler aşağıda yer almaktadır.
+                    </p>
+
+                    <table style="width:100%;border-collapse:collapse;margin-top:20px;">
+                        <tr>
+                            <td style="padding:12px;border-bottom:1px solid #edf0f4;font-weight:bold;">
+                                Destinasyon
+                            </td>
+                            <td style="padding:12px;border-bottom:1px solid #edf0f4;">
+                                {{destination}}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="padding:12px;border-bottom:1px solid #edf0f4;font-weight:bold;">
+                                Süre
+                            </td>
+                            <td style="padding:12px;border-bottom:1px solid #edf0f4;">
+                                {{dayCount}} gün
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="padding:12px;border-bottom:1px solid #edf0f4;font-weight:bold;">
+                                Yolcular
+                            </td>
+                            <td style="padding:12px;border-bottom:1px solid #edf0f4;">
+                                {{adultCount}} yetişkin, {{childCount}} çocuk
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="padding:12px;border-bottom:1px solid #edf0f4;font-weight:bold;">
+                                Bütçe Seviyesi
+                            </td>
+                            <td style="padding:12px;border-bottom:1px solid #edf0f4;">
+                                {{budgetLevelText}}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div style="margin-top:28px;padding:18px;background:#fff7d6;border-radius:14px;">
+                        <p style="margin:0;color:#6e5d13;">
+                            Bu e-posta BtkTripMindAI tarafından otomatik olarak hazırlanmıştır.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """;
+}
+
+
+--------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------

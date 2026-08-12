@@ -1,0 +1,30 @@
+﻿import {
+    createUserMessage,
+    createAgentMessage
+} from "./chat.js";
+
+----------------------------------------------------------------------------------------
+
+const detectedCity =
+    document.getElementById("detectedCity");
+
+const detectedCountry =
+    document.getElementById("detectedCountry");
+
+const destinationSeparator =
+    document.getElementById("destinationSeparator");
+
+const cityCoverImage =
+    document.getElementById("cityCoverImage");
+
+    -------------------------------------------------------------------------------------
+
+import {
+    createUserMessage,
+    createAgentMessage
+} from "./chat.js";
+
+import {
+    updateCityCover,
+    updateDestination
+} from "./destination.js";

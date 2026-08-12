@@ -1,0 +1,857 @@
+﻿
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Uçuş Sonuçları · BTK TripMind AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f5f8fc;
+    --surface:#ffffff;
+    --pastel:#e8f1fb;
+    --pastel-2:#dceaf6;
+    --accent:#2563a8;
+    --accent-deep:#1c4d84;
+    --accent-hover:#1f568f;
+    --ink:#132743;
+    --ink-2:#3a4a63;
+    --muted:#7488a3;
+    --line:#e2e9f2;
+    --line-strong:#d3ddeb;
+    --success:#2f7d5b;
+    --radius:15px;
+    --radius-sm:10px;
+    --shadow:0 1px 2px rgba(24,54,92,.05), 0 4px 14px rgba(24,54,92,.04);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  .wrap{max-width:1460px;margin:0 auto;padding:0 28px}
+
+  /* ---------- NAVBAR ---------- */
+  .nav{
+    height:68px;background:var(--surface);
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:center;position:sticky;top:0;z-index:50;
+  }
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;width:100%}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand-mark{
+    width:38px;height:38px;border-radius:11px;
+    background:linear-gradient(150deg,var(--accent) 0%,var(--accent-deep) 100%);
+    display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;
+  }
+  .brand-mark svg{width:20px;height:20px}
+  .brand-text{display:flex;flex-direction:column;line-height:1.15}
+  .brand-name{font-weight:700;font-size:15px;letter-spacing:-.2px}
+  .brand-sub{font-size:10.5px;color:var(--muted);letter-spacing:1.2px;font-weight:500}
+  .nav-right{display:flex;align-items:center;gap:16px}
+  .nav-back{
+    display:flex;align-items:center;gap:8px;
+    padding:9px 15px;border-radius:9px;border:1px solid var(--line-strong);
+    font-size:13px;font-weight:500;color:var(--ink-2);background:var(--surface);
+    transition:.15s;
+  }
+  .nav-back:hover{background:var(--pastel);border-color:var(--pastel-2);color:var(--accent-deep)}
+  .nav-back svg{width:16px;height:16px}
+  .avatar{
+    width:36px;height:36px;border-radius:50%;
+    background:var(--pastel);color:var(--accent-deep);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:600;font-size:13px;border:1px solid var(--line-strong);
+  }
+
+  /* ---------- SEARCH BAR ---------- */
+  .search-panel{
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);
+    margin-top:22px;padding:14px;
+    display:grid;
+    grid-template-columns:1.15fr auto 1.15fr 1fr .9fr .9fr auto;
+    align-items:stretch;gap:6px;
+  }
+  .sfield{
+    padding:8px 14px;border-radius:var(--radius-sm);
+    display:flex;flex-direction:column;justify-content:center;gap:2px;
+    transition:.15s;border:1px solid transparent;min-width:0;
+  }
+  .sfield:hover{background:var(--bg)}
+  .sfield-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600}
+  .sfield-value{font-size:15px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sfield-value .code{color:var(--muted);font-weight:500;font-size:13px;margin-left:6px}
+  .swap{
+    align-self:center;width:34px;height:34px;border-radius:50%;
+    border:1px solid var(--line-strong);background:var(--surface);
+    display:flex;align-items:center;justify-content:center;color:var(--accent);
+    transition:.15s;flex-shrink:0;
+  }
+  .swap:hover{background:var(--pastel);transform:rotate(180deg)}
+  .swap svg{width:16px;height:16px}
+  .search-cta{
+    background:var(--accent);color:#fff;border-radius:var(--radius-sm);
+    padding:0 22px;font-weight:600;font-size:14px;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:.15s;white-space:nowrap;
+  }
+  .search-cta:hover{background:var(--accent-hover)}
+  .search-cta svg{width:16px;height:16px}
+
+  /* ---------- ROUTE HEADER ---------- */
+  .route-head{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    margin-top:30px;gap:20px;flex-wrap:wrap;
+  }
+  .route-title{font-size:26px;font-weight:700;letter-spacing:-.5px;color:var(--ink)}
+  .route-meta{margin-top:5px;font-size:13.5px;color:var(--ink-2)}
+  .route-count{color:var(--muted);margin-left:2px}
+  .route-count b{color:var(--accent-deep);font-weight:600}
+
+  .sort{display:flex;align-items:center;gap:11px}
+  .sort-label{font-size:13px;color:var(--muted);font-weight:500}
+  .segmented{
+    display:inline-flex;background:var(--surface);border:1px solid var(--line-strong);
+    border-radius:10px;padding:3px;gap:2px;
+  }
+  .segmented button{
+    padding:7px 15px;border-radius:7px;font-size:13px;font-weight:500;
+    color:var(--ink-2);transition:.15s;
+  }
+  .segmented button.active{background:var(--accent);color:#fff;font-weight:600}
+  .segmented button:not(.active):hover{background:var(--pastel);color:var(--accent-deep)}
+
+  /* ---------- PRICE INSIGHT STRIP ---------- */
+  .insight{
+    margin-top:16px;background:var(--pastel);border:1px solid var(--pastel-2);
+    border-radius:11px;padding:11px 18px;
+    display:flex;align-items:center;gap:14px;font-size:13px;color:var(--ink-2);
+  }
+  .insight svg{width:17px;height:17px;color:var(--accent);flex-shrink:0}
+  .insight .divider{width:1px;height:16px;background:var(--pastel-2)}
+  .insight .low{margin-left:auto;font-weight:600;color:var(--ink)}
+  .insight .low span{color:var(--accent-deep)}
+
+  /* ---------- MAIN GRID ---------- */
+  .main{
+    display:grid;grid-template-columns:272px 1fr;gap:24px;
+    margin-top:22px;padding-bottom:60px;align-items:start;
+  }
+
+  /* ---------- FILTER PANEL ---------- */
+  .filters{
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:20px;position:sticky;top:88px;
+  }
+  .filters-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .filters-head h2{font-size:16px;font-weight:700}
+  .clear-btn{font-size:12.5px;color:var(--accent);font-weight:500}
+  .clear-btn:hover{text-decoration:underline}
+  .fsection{padding:18px 0;border-top:1px solid var(--line)}
+  .fsection:first-of-type{border-top:none;padding-top:14px}
+  .fsection h3{
+    font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;
+    color:var(--muted);font-weight:600;margin-bottom:13px;
+  }
+  .check{
+    display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer;font-size:13.5px;color:var(--ink-2);
+  }
+  .check input{position:absolute;opacity:0}
+  .box{
+    width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line-strong);
+    flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.12s;background:var(--surface);
+  }
+  .box svg{width:12px;height:12px;color:#fff;opacity:0;transition:.12s}
+  .check input:checked + .box{background:var(--accent);border-color:var(--accent)}
+  .check input:checked + .box svg{opacity:1}
+  .check:hover .box{border-color:var(--accent)}
+  .check .name{flex:1}
+  .check .price{font-size:12.5px;color:var(--muted);font-weight:500}
+  .check input:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* range slider */
+  .range-values{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:12px}
+  input[type=range]{
+    -webkit-appearance:none;width:100%;height:4px;border-radius:3px;
+    background:var(--line-strong);outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:17px;height:17px;border-radius:50%;
+    background:var(--accent);border:2.5px solid #fff;box-shadow:0 1px 4px rgba(24,54,92,.25);cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:17px;height:17px;border-radius:50%;background:var(--accent);
+    border:2.5px solid #fff;box-shadow:0 1px 4px rgba(24,54,92,.25);cursor:pointer;
+  }
+
+  .time-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .time-chip{
+    border:1px solid var(--line-strong);border-radius:8px;padding:9px 6px;
+    text-align:center;font-size:12.5px;font-weight:500;color:var(--ink-2);transition:.12s;
+  }
+  .time-chip:hover{border-color:var(--accent);color:var(--accent-deep)}
+  .time-chip.on{background:var(--pastel);border-color:var(--pastel-2);color:var(--accent-deep);font-weight:600}
+  .time-chip small{display:block;font-size:10px;color:var(--muted);font-weight:500;margin-top:1px}
+  .time-chip.on small{color:var(--accent)}
+
+  .dur-note{font-size:13px;color:var(--ink-2);margin-bottom:11px}
+  .dur-note b{color:var(--ink);font-weight:600}
+
+  /* ---------- FLIGHT CARDS ---------- */
+  .results{display:flex;flex-direction:column;gap:13px}
+  .flight{
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:16px;transition:.16s;overflow:hidden;
+  }
+  .flight:hover{border-color:var(--line-strong);box-shadow:var(--shadow)}
+  .flight.best{border-color:var(--pastel-2)}
+  .badge-row{
+    background:var(--pastel);padding:7px 22px;font-size:12px;font-weight:600;
+    color:var(--accent-deep);display:flex;align-items:center;gap:7px;
+    border-bottom:1px solid var(--pastel-2);
+  }
+  .badge-row svg{width:14px;height:14px}
+  .flight-body{display:grid;grid-template-columns:1fr 232px;align-items:stretch}
+  .flight-main{padding:20px 22px}
+  .flight-top{display:flex;align-items:center;gap:26px}
+
+  .airline{display:flex;align-items:center;gap:12px;width:170px;flex-shrink:0}
+  .airline-logo{
+    width:42px;height:42px;border-radius:10px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:15px;color:#fff;
+  }
+  .logo-ajet{background:#e8532b}
+  .logo-thy{background:#0f2f5e}
+  .logo-pegasus{background:#f6a800;color:#1a1a1a}
+  .airline-name{font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.25}
+  .airline-flno{font-size:11.5px;color:var(--muted);margin-top:1px}
+
+  .timeline{display:flex;align-items:center;gap:18px;flex:1}
+  .tl-point{text-align:center;min-width:56px}
+  .tl-time{font-size:20px;font-weight:700;letter-spacing:-.3px;color:var(--ink)}
+  .tl-code{font-size:12.5px;font-weight:600;color:var(--ink-2);margin-top:1px}
+  .tl-city{font-size:11px;color:var(--muted);margin-top:1px}
+  .tl-mid{flex:1;text-align:center;position:relative}
+  .tl-dur{font-size:12px;font-weight:500;color:var(--ink-2);margin-bottom:5px}
+  .tl-line{position:relative;height:2px;background:var(--line-strong);border-radius:2px}
+  .tl-line::before,.tl-line::after{
+    content:"";position:absolute;top:50%;width:6px;height:6px;border-radius:50%;
+    background:var(--accent);transform:translateY(-50%);
+  }
+  .tl-line::before{left:0}
+  .tl-line::after{right:0}
+  .tl-plane{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:var(--surface);padding:0 6px;color:var(--accent);
+  }
+  .tl-plane svg{width:15px;height:15px;display:block}
+  .tl-stops{font-size:11.5px;font-weight:600;margin-top:5px;color:var(--success)}
+  .tl-stops.has-stop{color:var(--accent-deep)}
+
+  .flight-meta{
+    display:flex;align-items:center;gap:16px;margin-top:16px;padding-top:15px;
+    border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);flex-wrap:wrap;
+  }
+  .flight-meta span{display:flex;align-items:center;gap:6px}
+  .flight-meta svg{width:14px;height:14px;color:var(--muted)}
+  .flight-meta .ok svg{color:var(--success)}
+  .flight-meta .na{color:var(--muted);font-style:italic}
+
+  .price-col{
+    background:linear-gradient(180deg,#fbfcfe 0%,#f6f9fd 100%);
+    border-left:1px solid var(--line);
+    padding:20px 22px;display:flex;flex-direction:column;
+    align-items:flex-end;justify-content:center;gap:3px;
+  }
+  .price-amt{font-size:24px;font-weight:700;letter-spacing:-.5px;color:var(--ink)}
+  .price-per{font-size:11.5px;color:var(--muted);margin-bottom:12px}
+  .select-btn{
+    width:100%;background:var(--accent);color:#fff;padding:11px 18px;
+    border-radius:9px;font-weight:600;font-size:13.5px;transition:.15s;
+    display:flex;align-items:center;justify-content:center;gap:7px;
+  }
+  .select-btn:hover{background:var(--accent-hover)}
+  .select-btn svg{width:15px;height:15px}
+  .detail-link{
+    margin-top:9px;font-size:12.5px;color:var(--accent);font-weight:500;
+  }
+  .detail-link:hover{text-decoration:underline}
+
+  /* mobile filter button */
+  .filter-toggle{display:none}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media(max-width:1080px){
+    .search-panel{grid-template-columns:1fr auto 1fr;grid-auto-rows:auto;gap:8px}
+    .search-panel .swap{grid-row:span 1}
+    .search-cta{grid-column:1/-1;padding:12px}
+  }
+  @media(max-width:900px){
+    .main{grid-template-columns:1fr}
+    .filters{position:static;display:none}
+    .filters.open{display:block;margin-bottom:16px}
+    .filter-toggle{
+      display:flex;align-items:center;justify-content:center;gap:8px;
+      background:var(--surface);border:1px solid var(--line-strong);
+      border-radius:10px;padding:11px;font-weight:600;font-size:13.5px;color:var(--ink-2);
+    }
+    .filter-toggle svg{width:16px;height:16px}
+  }
+  @media(max-width:680px){
+    .wrap{padding:0 16px}
+    .search-panel{grid-template-columns:1fr;padding:10px}
+    .search-panel .swap{justify-self:center;transform:rotate(90deg)}
+    .search-panel .swap:hover{transform:rotate(270deg)}
+    .flight-body{grid-template-columns:1fr}
+    .price-col{
+      border-left:none;border-top:1px solid var(--line);
+      flex-direction:row;align-items:center;justify-content:space-between;
+      background:#fbfcfe;
+    }
+    .price-per{margin-bottom:0}
+    .select-btn{width:auto;padding:11px 24px}
+    .detail-link{display:none}
+    .flight-top{flex-direction:column;align-items:stretch;gap:16px}
+    .airline{width:auto}
+    .route-title{font-size:22px}
+    .route-head{align-items:flex-start}
+    .sort{width:100%}
+    .segmented{width:100%}
+    .segmented button{flex:1}
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== NAVBAR ====== -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">BTK TripMind AI</span>
+        <span class="brand-sub">SEYAHAT ASİSTANI</span>
+      </div>
+    </div>
+    <div class="nav-right">
+      <a href="#" class="nav-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+        Dashboard'a Dön
+      </a>
+      <div class="avatar">MT</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ====== SEARCH BAR ====== -->
+  <div class="search-panel">
+    <div class="sfield">
+      <span class="sfield-label">Nereden</span>
+      <span class="sfield-value">Ankara <span class="code">ESB</span></span>
+    </div>
+    <button class="swap" aria-label="Kalkış ve varışı değiştir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 3 4 4-4 4"/><path d="M21 7H4"/><path d="m7 21-4-4 4-4"/><path d="M3 17h17"/></svg>
+    </button>
+    <div class="sfield">
+      <span class="sfield-label">Nereye</span>
+      <span class="sfield-value">Trabzon <span class="code">TZX</span></span>
+    </div>
+    <div class="sfield">
+      <span class="sfield-label">Gidiş</span>
+      <span class="sfield-value">10 Ağustos 2026</span>
+    </div>
+    <div class="sfield">
+      <span class="sfield-label">Yolcu</span>
+      <span class="sfield-value">1 Yetişkin</span>
+    </div>
+    <div class="sfield">
+      <span class="sfield-label">Sınıf</span>
+      <span class="sfield-value">Ekonomi</span>
+    </div>
+    <button class="search-cta">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      Aramayı Güncelle
+    </button>
+  </div>
+
+  <!-- ====== ROUTE HEADER ====== -->
+  <div class="route-head">
+    <div>
+      <h1 class="route-title">Ankara → Trabzon Uçuşları</h1>
+      <p class="route-meta">
+        10 Ağustos 2026 · 1 Yetişkin · Ekonomi
+        <span class="route-count"> — <b>52 uçuş</b> bulundu</span>
+      </p>
+    </div>
+    <div class="sort">
+      <span class="sort-label">Sırala:</span>
+      <div class="segmented" role="group" aria-label="Sıralama">
+        <button class="active">En İyi</button>
+        <button>En Ucuz</button>
+        <button>En Hızlı</button>
+        <button>En Erken</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== PRICE INSIGHT ====== -->
+  <div class="insight">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+    Bu rota için fiyatlar şu anda ortalama seviyede.
+    <span class="divider"></span>
+    <span class="low">En düşük fiyat: <span>3.662 TL</span></span>
+  </div>
+
+  <!-- ====== MAIN GRID ====== -->
+  <div class="main">
+
+    <!-- FILTER TOGGLE (mobile) -->
+    <button class="filter-toggle" onclick="document.querySelector('.filters').classList.toggle('open')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"/></svg>
+      Filtreler
+    </button>
+
+    <!-- ====== FILTERS ====== -->
+    <aside class="filters">
+      <div class="filters-head">
+        <h2>Filtreler</h2>
+        <button class="clear-btn">Tümünü Temizle</button>
+      </div>
+
+      <div class="fsection">
+        <h3>Aktarma</h3>
+        <label class="check"><input type="checkbox" checked><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="name">Direkt</span></label>
+        <label class="check"><input type="checkbox"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="name">1 Aktarma</span></label>
+        <label class="check"><input type="checkbox"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="name">2+ Aktarma</span></label>
+      </div>
+
+      <div class="fsection">
+        <h3>Havayolları</h3>
+        <label class="check"><input type="checkbox" checked><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="name">AJet</span><span class="price">3.662 TL</span></label>
+        <label class="check"><input type="checkbox" checked><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="name">Türk Hava Yolları</span><span class="price">4.120 TL</span></label>
+        <label class="check"><input type="checkbox" checked><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="name">Pegasus</span><span class="price">4.450 TL</span></label>
+      </div>
+
+      <div class="fsection">
+        <h3>Fiyat Aralığı</h3>
+        <div class="range-values"><span>3.500 TL</span><span>8.500 TL</span></div>
+        <input type="range" min="3500" max="8500" value="8500" aria-label="Maksimum fiyat">
+      </div>
+
+      <div class="fsection">
+        <h3>Kalkış Saati</h3>
+        <div class="time-grid">
+          <div class="time-chip on">00-06<small>Gece</small></div>
+          <div class="time-chip on">06-12<small>Sabah</small></div>
+          <div class="time-chip on">12-18<small>Öğlen</small></div>
+          <div class="time-chip on">18-24<small>Akşam</small></div>
+        </div>
+      </div>
+
+      <div class="fsection">
+        <h3>Uçuş Süresi</h3>
+        <div class="dur-note">Maksimum <b>2 sa 30 dk</b></div>
+        <input type="range" min="75" max="300" value="150" aria-label="Maksimum uçuş süresi">
+      </div>
+
+      <div class="fsection">
+        <h3>Bagaj</h3>
+        <label class="check"><input type="checkbox"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="name">Bagaj dahil</span></label>
+      </div>
+    </aside>
+
+    <!-- ====== RESULTS ====== -->
+    <div class="results">
+
+      <!-- CARD 1 — best -->
+      <article class="flight best">
+        <div class="badge-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 15 8.5 22 9.5 17 14.5 18.5 21.5 12 18 5.5 21.5 7 14.5 2 9.5 9 8.5z"/></svg>
+          En İyi Seçenek
+        </div>
+        <div class="flight-body">
+          <div class="flight-main">
+            <div class="flight-top">
+              <div class="airline">
+                <div class="airline-logo logo-ajet">AJ</div>
+                <div>
+                  <div class="airline-name">AJet</div>
+                  <div class="airline-flno">VF 4288</div>
+                </div>
+              </div>
+              <div class="timeline">
+                <div class="tl-point">
+                  <div class="tl-time">10:30</div>
+                  <div class="tl-code">ESB</div>
+                  <div class="tl-city">Ankara Esenboğa</div>
+                </div>
+                <div class="tl-mid">
+                  <div class="tl-dur">1 sa 15 dk</div>
+                  <div class="tl-line"><span class="tl-plane"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span></div>
+                  <div class="tl-stops">Direkt</div>
+                </div>
+                <div class="tl-point">
+                  <div class="tl-time">11:45</div>
+                  <div class="tl-code">TZX</div>
+                  <div class="tl-city">Trabzon</div>
+                </div>
+              </div>
+            </div>
+            <div class="flight-meta">
+              <span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Direkt uçuş</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v10"/><path d="M10 6V4a2 2 0 0 1 2-2 2 2 0 0 1 2 2v2"/><path d="M4 20h16"/></svg>Kabin bagajı</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18v-6a8 8 0 0 1 16 0v6"/><path d="M2 18h20"/><path d="M6 18v2M18 18v2"/></svg>Ekonomi</span>
+              <span>Boeing 737</span>
+            </div>
+          </div>
+          <div class="price-col">
+            <div class="price-amt">3.662 TL</div>
+            <div class="price-per">kişi başı</div>
+            <button class="select-btn">Uçuşu Seç <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+            <a href="#" class="detail-link">Detayları Gör</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- CARD 2 -->
+      <article class="flight">
+        <div class="flight-body">
+          <div class="flight-main">
+            <div class="flight-top">
+              <div class="airline">
+                <div class="airline-logo logo-pegasus">PC</div>
+                <div>
+                  <div class="airline-name">Pegasus</div>
+                  <div class="airline-flno">PC 2314</div>
+                </div>
+              </div>
+              <div class="timeline">
+                <div class="tl-point">
+                  <div class="tl-time">12:20</div>
+                  <div class="tl-code">ESB</div>
+                  <div class="tl-city">Ankara Esenboğa</div>
+                </div>
+                <div class="tl-mid">
+                  <div class="tl-dur">1 sa 15 dk</div>
+                  <div class="tl-line"><span class="tl-plane"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span></div>
+                  <div class="tl-stops">Direkt</div>
+                </div>
+                <div class="tl-point">
+                  <div class="tl-time">13:35</div>
+                  <div class="tl-code">TZX</div>
+                  <div class="tl-city">Trabzon</div>
+                </div>
+              </div>
+            </div>
+            <div class="flight-meta">
+              <span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Direkt uçuş</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v10"/><path d="M10 6V4a2 2 0 0 1 2-2 2 2 0 0 1 2 2v2"/><path d="M4 20h16"/></svg>Kabin bagajı</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18v-6a8 8 0 0 1 16 0v6"/><path d="M2 18h20"/><path d="M6 18v2M18 18v2"/></svg>Ekonomi</span>
+              <span>Airbus A320</span>
+            </div>
+          </div>
+          <div class="price-col">
+            <div class="price-amt">3.890 TL</div>
+            <div class="price-per">kişi başı</div>
+            <button class="select-btn">Uçuşu Seç <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+            <a href="#" class="detail-link">Detayları Gör</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- CARD 3 — 1 stop -->
+      <article class="flight">
+        <div class="flight-body">
+          <div class="flight-main">
+            <div class="flight-top">
+              <div class="airline">
+                <div class="airline-logo logo-thy">TK</div>
+                <div>
+                  <div class="airline-name">Türk Hava Yolları</div>
+                  <div class="airline-flno">TK 2278</div>
+                </div>
+              </div>
+              <div class="timeline">
+                <div class="tl-point">
+                  <div class="tl-time">14:10</div>
+                  <div class="tl-code">ESB</div>
+                  <div class="tl-city">Ankara Esenboğa</div>
+                </div>
+                <div class="tl-mid">
+                  <div class="tl-dur">2 sa 45 dk</div>
+                  <div class="tl-line"><span class="tl-plane"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span></div>
+                  <div class="tl-stops has-stop">1 Aktarma · IST</div>
+                </div>
+                <div class="tl-point">
+                  <div class="tl-time">16:55</div>
+                  <div class="tl-code">TZX</div>
+                  <div class="tl-city">Trabzon</div>
+                </div>
+              </div>
+            </div>
+            <div class="flight-meta">
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>1 aktarma · İstanbul</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v10"/><path d="M10 6V4a2 2 0 0 1 2-2 2 2 0 0 1 2 2v2"/><path d="M4 20h16"/></svg>Kabin + 15 kg bagaj</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18v-6a8 8 0 0 1 16 0v6"/><path d="M2 18h20"/><path d="M6 18v2M18 18v2"/></svg>Ekonomi</span>
+              <span>Airbus A321</span>
+            </div>
+          </div>
+          <div class="price-col">
+            <div class="price-amt">4.420 TL</div>
+            <div class="price-per">kişi başı</div>
+            <button class="select-btn">Uçuşu Seç <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+            <a href="#" class="detail-link">Detayları Gör</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- CARD 4 -->
+      <article class="flight">
+        <div class="flight-body">
+          <div class="flight-main">
+            <div class="flight-top">
+              <div class="airline">
+                <div class="airline-logo logo-ajet">AJ</div>
+                <div>
+                  <div class="airline-name">AJet</div>
+                  <div class="airline-flno">VF 4290</div>
+                </div>
+              </div>
+              <div class="timeline">
+                <div class="tl-point">
+                  <div class="tl-time">17:25</div>
+                  <div class="tl-code">ESB</div>
+                  <div class="tl-city">Ankara Esenboğa</div>
+                </div>
+                <div class="tl-mid">
+                  <div class="tl-dur">1 sa 15 dk</div>
+                  <div class="tl-line"><span class="tl-plane"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span></div>
+                  <div class="tl-stops">Direkt</div>
+                </div>
+                <div class="tl-point">
+                  <div class="tl-time">18:40</div>
+                  <div class="tl-code">TZX</div>
+                  <div class="tl-city">Trabzon</div>
+                </div>
+              </div>
+            </div>
+            <div class="flight-meta">
+              <span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Direkt uçuş</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v10"/><path d="M10 6V4a2 2 0 0 1 2-2 2 2 0 0 1 2 2v2"/><path d="M4 20h16"/></svg>Kabin bagajı</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18v-6a8 8 0 0 1 16 0v6"/><path d="M2 18h20"/><path d="M6 18v2M18 18v2"/></svg>Ekonomi</span>
+              <span class="na">Bagaj bilgisi belirtilmemiş</span>
+            </div>
+          </div>
+          <div class="price-col">
+            <div class="price-amt">4.010 TL</div>
+            <div class="price-per">kişi başı</div>
+            <button class="select-btn">Uçuşu Seç <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+            <a href="#" class="detail-link">Detayları Gör</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- CARD 5 -->
+      <article class="flight">
+        <div class="flight-body">
+          <div class="flight-main">
+            <div class="flight-top">
+              <div class="airline">
+                <div class="airline-logo logo-pegasus">PC</div>
+                <div>
+                  <div class="airline-name">Pegasus</div>
+                  <div class="airline-flno">PC 2320</div>
+                </div>
+              </div>
+              <div class="timeline">
+                <div class="tl-point">
+                  <div class="tl-time">20:15</div>
+                  <div class="tl-code">ESB</div>
+                  <div class="tl-city">Ankara Esenboğa</div>
+                </div>
+                <div class="tl-mid">
+                  <div class="tl-dur">1 sa 15 dk</div>
+                  <div class="tl-line"><span class="tl-plane"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span></div>
+                  <div class="tl-stops">Direkt</div>
+                </div>
+                <div class="tl-point">
+                  <div class="tl-time">21:30</div>
+                  <div class="tl-code">TZX</div>
+                  <div class="tl-city">Trabzon</div>
+                </div>
+              </div>
+            </div>
+            <div class="flight-meta">
+              <span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Direkt uçuş</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v10"/><path d="M10 6V4a2 2 0 0 1 2-2 2 2 0 0 1 2 2v2"/><path d="M4 20h16"/></svg>Kabin bagajı</span>
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18v-6a8 8 0 0 1 16 0v6"/><path d="M2 18h20"/><path d="M6 18v2M18 18v2"/></svg>Ekonomi</span>
+              <span>Airbus A320neo</span>
+            </div>
+          </div>
+          <div class="price-col">
+            <div class="price-amt">4.250 TL</div>
+            <div class="price-per">kişi başı</div>
+            <button class="select-btn">Uçuşu Seç <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+            <a href="#" class="detail-link">Detayları Gör</a>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // Sort segmented control
+  document.querySelectorAll('.segmented button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+    });
+  });
+  // Departure-time chips toggle
+  document.querySelectorAll('.time-chip').forEach(c=>{
+    c.addEventListener('click',()=>c.classList.toggle('on'));
+  });
+</script>
+</body>
+</html>
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+using BtkTripMindAI.Models.FlightModels;
+
+namespace BtkTripMindAI.ViewModels.FlightViewModels
+{
+    public class FlightResultsViewModel
+    {
+        public string DepartureCity { get; set; } = string.Empty;
+
+        public string DepartureAirportCode { get; set; } = string.Empty;
+
+        public string ArrivalCity { get; set; } = string.Empty;
+
+        public string ArrivalAirportCode { get; set; } = string.Empty;
+
+        public DateTime DepartureDate { get; set; }
+
+        public int AdultCount { get; set; }
+
+        public int ChildCount { get; set; }
+
+        public string TravelClass { get; set; } = "ECONOMY";
+
+        public decimal? LowestPrice { get; set; }
+
+        public int TotalFlightCount { get; set; }
+
+        public List<FlightOption> TopFlights { get; set; } = new();
+
+        public List<FlightOption> OtherFlights { get; set; } = new();
+    }
+}
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+ return new AgentResult
+    {
+        IsSuccess = false,
+        Intent = TravelIntent.Flight,
+        ToolName = nameof(FlightService),
+
+        Flight = flightResult,
+
+        Message =
+            flightResult.ErrorMessage
+            ?? "Uçuş bilgileri alınamadı."
+    };
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+return new AgentResult
+{
+    IsSuccess = true,
+    Intent = TravelIntent.Flight,
+    ToolName = nameof(FlightService),
+
+    Flight = flightResult,
+
+    Message =
+        $"{departureAirportCode} ile {arrivalAirportCode} arasında " +
+        $"{flightDetails.DepartureDate.Value:dd.MM.yyyy} tarihi için " +
+        $"{totalFlightCount} uçuş seçeneği bulundu."
+};
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+ if (agentResult.intent === "Flight" &&
+        agentResult.flight) {
+
+        sessionStorage.setItem(
+            "flightSearchResult",
+            JSON.stringify(agentResult.flight)
+        );
+
+        sessionStorage.setItem(
+            "flightSearchMeta",
+            JSON.stringify({
+                departureCity:
+                    agentResult.flight.departureAirportCode,
+                arrivalCity:
+                    agentResult.flight.arrivalAirportCode,
+                departureDate:
+                    agentResult.flight.departureDate,
+                adultCount:
+                    agentResult.adultCount || 1,
+                childCount:
+                    agentResult.childCount || 0,
+                travelClass:
+                    "ECONOMY"
+            })
+        );
+
+        window.location.href =
+            "/Dashboard/FlightResults";
+
+        return;
+    }
+
+
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------

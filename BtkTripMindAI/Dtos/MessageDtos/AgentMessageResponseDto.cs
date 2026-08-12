@@ -1,4 +1,5 @@
 ﻿using BtkTripMindAI.Dtos.BudgetDtos;
+using BtkTripMindAI.Models.FlightModels;
 using BtkTripMindAI.Models.HotelModels;
 using BtkTripMindAI.Models.RestaurantModels;
 using BtkTripMindAI.Models.RouteModels;
@@ -24,5 +25,8 @@ namespace BtkTripMindAI.Dtos.MessageDtos
         public int ChildCount { get; set; }
         public string? BudgetLevel { get; set; }
         public BudgetResult? Budget { get; set; }
+        public string? EmailAddress { get; set; }
+        public bool EmailSent { get; set; }
+        public FlightResult? Flight { get; set; }
     }
 }

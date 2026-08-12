@@ -1,0 +1,40 @@
+﻿<div class="relative rounded-3xl overflow-hidden h-72 shadow-xl group">
+
+    <div id="cityCoverImage"
+         class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+         data-alt="Seyahat destinasyonu şehir görünümü"
+         style="background-image: url('MEVCUT_NICE_GORSELIN')">
+    </div>
+
+    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+
+    <div class="absolute bottom-6 left-6 text-white">
+
+        <div class="flex gap-2 mb-2">
+            <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] uppercase font-bold tracking-widest">
+                Deniz
+            </span>
+
+            <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] uppercase font-bold tracking-widest">
+                Kültür
+            </span>
+
+            <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] uppercase font-bold tracking-widest">
+                Aile Dostu
+            </span>
+        </div>
+
+        <h3 class="font-display-lg leading-none">
+            <span id="detectedCity">
+                Şehir seçilmedi
+            </span>
+
+            <span id="destinationSeparator"
+                  class="hidden">
+                ,
+            </span>
+
+            <span id="detectedCountry"></span>
+        </h3>
+    </div>
+</div>

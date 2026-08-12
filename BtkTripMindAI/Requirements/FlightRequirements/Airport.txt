@@ -1,0 +1,492 @@
+﻿------------------------------------------------------------------------------------------------------------------
+
+using System.Text.Json.Serialization;
+
+namespace BtkTripMindAI.Dtos.AirportDtos
+{
+    public class RapidApiAirportSearchResponseDto
+    {
+        [JsonPropertyName("status")]
+        public bool Status { get; set; }
+
+        [JsonPropertyName("message")]
+        public string? Message { get; set; }
+
+        [JsonPropertyName("data")]
+        public List<RapidApiAirportSearchItemDto> Data { get; set; } = new();
+    }
+}
+
+
+------------------------------------------------------------------------------------------------------------------
+
+using System.Text.Json.Serialization;
+
+namespace BtkTripMindAI.Dtos.AirportDtos
+{
+    public class RapidApiAirportSearchItemDto
+    {
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+
+        [JsonPropertyName("subtitle")]
+        public string? Subtitle { get; set; }
+
+        [JsonPropertyName("city")]
+        public string? City { get; set; }
+
+        [JsonPropertyName("distance")]
+        public string? Distance { get; set; }
+
+        [JsonPropertyName("list")]
+        public List<RapidApiAirportSearchItemDto> List { get; set; } = new();
+    }
+}
+
+
+------------------------------------------------------------------------------------------------------------------
+
+  public string IataCode { get; set; } = string.Empty;
+
+        public string AirportName { get; set; } = string.Empty;
+
+        public string City { get; set; } = string.Empty;
+
+        public string? CountryInfo { get; set; }
+
+        public string? Distance { get; set; }
+
+
+------------------------------------------------------------------------------------------------------------------
+
+namespace BtkTripMindAI.Models.AirportModels
+{
+    public class AirportSearchResult
+    {
+        public bool IsSuccess { get; set; }
+
+        public string? ErrorMessage { get; set; }
+
+        public string Query { get; set; } = string.Empty;
+
+        public List<AirportOption> Airports { get; set; } = new();
+
+        public AirportOption? BestMatch { get; set; }
+    }
+}
+
+
+------------------------------------------------------------------------------------------------------------------
+
+using BtkTripMindAI.Dtos.AirportDtos;
+using BtkTripMindAI.Models.AirportModels;
+using System.Net.Http.Headers;
+using System.Text.Json;
+
+namespace BtkTripMindAI.Services.AirportServices
+{
+    public class RapidApiAirportService : IAirportService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<RapidApiAirportService> _logger;
+
+        public RapidApiAirportService(
+            HttpClient httpClient,
+            IConfiguration configuration,
+            ILogger<RapidApiAirportService> logger)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+        }
+
+        public async Task<AirportSearchResult> SearchAirportsAsync(
+            string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return CreateFailureResult(
+                    query,
+                    "Aranacak şehir veya havalimanı bilgisi gereklidir.");
+            }
+
+            string? apiKey =
+                _configuration["RapidApiFlight:ApiKey"];
+
+            string host =
+                _configuration["RapidApiFlight:Host"]
+                ?? "google-flights2.p.rapidapi.com";
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                return CreateFailureResult(
+                    query,
+                    "RapidAPI Flight API anahtarı bulunamadı.");
+            }
+
+            string normalizedQuery =
+                query.Trim();
+
+            string requestUrl =
+                $"https://{host}/api/v1/searchAirport" +
+                $"?query={Uri.EscapeDataString(normalizedQuery)}" +
+                $"&language_code=en-US" +
+                $"&country_code=TR";
+
+            try
+            {
+                using var request =
+                    new HttpRequestMessage(
+                        HttpMethod.Get,
+                        requestUrl);
+
+                request.Headers.Add(
+                    "x-rapidapi-key",
+                    apiKey);
+
+                request.Headers.Add(
+                    "x-rapidapi-host",
+                    host);
+
+                request.Headers.Accept.Add(
+                    new MediaTypeWithQualityHeaderValue(
+                        "application/json"));
+
+                using HttpResponseMessage response =
+                    await _httpClient.SendAsync(request);
+
+                string responseContent =
+                    await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning(
+                        "Airport API başarısız cevap verdi. " +
+                        "StatusCode: {StatusCode}, Query: {Query}, " +
+                        "Response: {Response}",
+                        response.StatusCode,
+                        normalizedQuery,
+                        responseContent);
+
+                    return CreateFailureResult(
+                        normalizedQuery,
+                        "Havalimanı bilgileri alınamadı.");
+                }
+
+                RapidApiAirportSearchResponseDto? apiResponse =
+                    JsonSerializer.Deserialize<
+                        RapidApiAirportSearchResponseDto>(
+                        responseContent,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                if (apiResponse is null ||
+                    !apiResponse.Status)
+                {
+                    return CreateFailureResult(
+                        normalizedQuery,
+                        apiResponse?.Message
+                        ?? "Havalimanı servisinden geçerli veri alınamadı.");
+                }
+
+                List<AirportOption> airports =
+                    ExtractAirports(apiResponse.Data);
+
+                if (airports.Count == 0)
+                {
+                    return CreateFailureResult(
+                        normalizedQuery,
+                        $"{normalizedQuery} için havalimanı bulunamadı.");
+                }
+
+                AirportOption? bestMatch =
+                    FindBestMatch(
+                        airports,
+                        normalizedQuery);
+
+                return new AirportSearchResult
+                {
+                    IsSuccess = true,
+                    Query = normalizedQuery,
+                    Airports = airports,
+                    BestMatch = bestMatch
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning(
+                    "Havalimanı arama isteği zaman aşımına uğradı. " +
+                    "Query: {Query}",
+                    normalizedQuery);
+
+                return CreateFailureResult(
+                    normalizedQuery,
+                    "Havalimanı arama servisi zaman aşımına uğradı.");
+            }
+            catch (JsonException exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Havalimanı API JSON cevabı ayrıştırılamadı. " +
+                    "Query: {Query}",
+                    normalizedQuery);
+
+                return CreateFailureResult(
+                    normalizedQuery,
+                    "Havalimanı verileri işlenemedi.");
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Havalimanı bilgileri alınırken hata oluştu. " +
+                    "Query: {Query}",
+                    normalizedQuery);
+
+                return CreateFailureResult(
+                    normalizedQuery,
+                    "Havalimanı bilgileri alınırken bir hata oluştu.");
+            }
+        }
+
+        private static List<AirportOption> ExtractAirports(
+            List<RapidApiAirportSearchItemDto> items)
+        {
+            var airports =
+                new List<AirportOption>();
+
+            foreach (RapidApiAirportSearchItemDto item in items)
+            {
+                if (IsAirport(item))
+                {
+                    AddAirportIfValid(
+                        airports,
+                        item);
+                }
+
+                if (item.List is null ||
+                    item.List.Count == 0)
+                {
+                    continue;
+                }
+
+                foreach (RapidApiAirportSearchItemDto childItem
+                         in item.List)
+                {
+                    if (!IsAirport(childItem))
+                    {
+                        continue;
+                    }
+
+                    AddAirportIfValid(
+                        airports,
+                        childItem);
+                }
+            }
+
+            return airports
+                .GroupBy(
+                    airport => airport.IataCode,
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToList();
+        }
+
+        private static bool IsAirport(
+            RapidApiAirportSearchItemDto item)
+        {
+            return string.Equals(
+                item.Type,
+                "airport",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void AddAirportIfValid(
+            List<AirportOption> airports,
+            RapidApiAirportSearchItemDto item)
+        {
+            if (string.IsNullOrWhiteSpace(item.Id))
+            {
+                return;
+            }
+
+            string iataCode =
+                item.Id.Trim().ToUpperInvariant();
+
+            /*
+             * API şehir, bölge veya Google entity kimliği de döndürebilir.
+             * Gerçek IATA kodları üç karakterlidir.
+             */
+            if (iataCode.Length != 3)
+            {
+                return;
+            }
+
+            airports.Add(
+                new AirportOption
+                {
+                    IataCode = iataCode,
+
+                    AirportName =
+                        item.Title?.Trim()
+                        ?? string.Empty,
+
+                    City =
+                        item.City?.Trim()
+                        ?? string.Empty,
+
+                    CountryInfo =
+                        item.Subtitle?.Trim(),
+
+                    Distance =
+                        item.Distance?.Trim()
+                });
+        }
+
+        private static AirportOption? FindBestMatch(
+            List<AirportOption> airports,
+            string query)
+        {
+            string normalizedQuery =
+                query.Trim();
+
+            AirportOption? exactCodeMatch =
+                airports.FirstOrDefault(
+                    airport =>
+                        string.Equals(
+                            airport.IataCode,
+                            normalizedQuery,
+                            StringComparison.OrdinalIgnoreCase));
+
+            if (exactCodeMatch is not null)
+            {
+                return exactCodeMatch;
+            }
+
+            AirportOption? exactAirportNameMatch =
+                airports.FirstOrDefault(
+                    airport =>
+                        string.Equals(
+                            airport.AirportName,
+                            normalizedQuery,
+                            StringComparison.OrdinalIgnoreCase));
+
+            if (exactAirportNameMatch is not null)
+            {
+                return exactAirportNameMatch;
+            }
+
+            AirportOption? airportNameContainsMatch =
+                airports.FirstOrDefault(
+                    airport =>
+                        airport.AirportName.Contains(
+                            normalizedQuery,
+                            StringComparison.OrdinalIgnoreCase));
+
+            if (airportNameContainsMatch is not null)
+            {
+                return airportNameContainsMatch;
+            }
+
+            AirportOption? cityMatch =
+                airports.FirstOrDefault(
+                    airport =>
+                        string.Equals(
+                            airport.City,
+                            normalizedQuery,
+                            StringComparison.OrdinalIgnoreCase));
+
+            return cityMatch
+                   ?? airports.FirstOrDefault();
+        }
+
+        private static AirportSearchResult CreateFailureResult(
+            string? query,
+            string errorMessage)
+        {
+            return new AirportSearchResult
+            {
+                IsSuccess = false,
+                Query = query?.Trim() ?? string.Empty,
+                ErrorMessage = errorMessage,
+                Airports = new List<AirportOption>(),
+                BestMatch = null
+            };
+        }
+    }
+}
+
+
+------------------------------------------------------------------------------------------------------------------
+
+private static List<AirportOption> ExtractAirports(
+    List<RapidApiAirportSearchItemDto>? items)
+{
+    var airports = new List<AirportOption>();
+
+    if (items is null || items.Count == 0)
+    {
+        return airports;
+    }
+
+    foreach (RapidApiAirportSearchItemDto item in items)
+    {
+        CollectAirports(
+            item,
+            airports);
+    }
+
+    return airports
+        .GroupBy(
+            airport => airport.IataCode,
+            StringComparer.OrdinalIgnoreCase)
+        .Select(group => group.First())
+        .ToList();
+}
+
+
+------------------------------------------------------------------------------------------------------------------
+
+private static void CollectAirports(
+    RapidApiAirportSearchItemDto item,
+    List<AirportOption> airports)
+{
+    if (IsAirport(item))
+    {
+        AddAirportIfValid(
+            airports,
+            item);
+    }
+
+    if (item.List is null || item.List.Count == 0)
+    {
+        return;
+    }
+
+    foreach (RapidApiAirportSearchItemDto childItem in item.List)
+    {
+        CollectAirports(
+            childItem,
+            airports);
+    }
+}
+
+
+------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------

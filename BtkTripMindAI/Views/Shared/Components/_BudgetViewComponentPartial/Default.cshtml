@@ -1,0 +1,45 @@
+﻿    <!-- Dynamic Budget Card -->
+<div id="budgetCard"
+     class="bg-surface-container p-6 rounded-3xl flex flex-col border border-outline-variant/30">
+
+    <div class="flex items-start justify-between gap-3 mb-4">
+        <div>
+            <p class="text-label-md text-on-surface-variant font-bold">
+                Tahmini Bütçe
+            </p>
+
+            <p id="budgetSummary"
+               class="text-[11px] text-on-surface-variant/70 mt-1">
+                Henüz bütçe hesaplanmadı.
+            </p>
+        </div>
+
+        <span id="budgetLevelBadge"
+              class="hidden px-2 py-1 bg-primary-container/50 text-primary
+                     rounded-full text-[10px] font-bold">
+        </span>
+    </div>
+
+    <div id="budgetItemsContainer"
+         class="space-y-3 flex-1">
+
+        <div id="budgetPlaceholder"
+             class="p-4 bg-white/50 rounded-2xl border border-outline-variant/20">
+
+            <p class="text-[12px] text-on-surface-variant">
+                Bir şehir, gün ve kişi sayısı belirterek seyahat bütçesi hesaplatabilirsiniz.
+            </p>
+        </div>
+    </div>
+
+    <div class="mt-4 pt-4 border-t border-outline-variant/30">
+        <p class="text-[12px] text-on-surface-variant">
+            Toplam
+        </p>
+
+        <p id="budgetTotal"
+           class="text-headline-md font-bold text-primary">
+            -- EUR
+        </p>
+    </div>
+</div>
